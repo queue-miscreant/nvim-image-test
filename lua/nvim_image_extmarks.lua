@@ -5,7 +5,7 @@
 local interface = require "nvim_image_extmarks.interface"
 local sixel_raw = require "nvim_image_extmarks.sixel_raw"
 local window_drawing = require "nvim_image_extmarks.window_drawing"
-local blob_cache = require "nvim_image_extmarks.blob_cache"
+local blobber = require "nvim_image_extmarks.blobber"
 
 local extmark_timer = nil
 assert(
@@ -291,9 +291,9 @@ function sixel_extmarks.redraw(force)
       end)
 
       if sixel_raw.screen_cleared then
-        blob_cache.draw(draw_accum)
+        blobber.draw(draw_accum)
       else
-        blob_cache.draw(lazy_draw_accum)
+        blobber.draw(lazy_draw_accum)
       end
     end)
   )
@@ -335,7 +335,7 @@ end
 -- a table with filenames as keys and buffer ranges as values.
 --
 function sixel_extmarks.dump_blob_cache()
-  return blob_cache.dump()
+  return blobber.dump_cache()
 end
 
 

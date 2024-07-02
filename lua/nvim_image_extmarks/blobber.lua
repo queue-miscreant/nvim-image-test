@@ -1,4 +1,4 @@
--- nvim_image_extmarks/blob_cache.lua
+-- nvim_image_extmarks/blobber.lua
 --
 -- Helper functions for creating and drawing blobs.
 --
@@ -381,7 +381,7 @@ function blobber.clear(path)
 end
 
 
-function blobber.dump()
+function blobber.dump_cache()
   return vim.tbl_map(
     function(x)
       return vim.tbl_map(cache_id_to_table, vim.tbl_keys(x))

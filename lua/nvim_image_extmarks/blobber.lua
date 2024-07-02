@@ -49,6 +49,8 @@ local blobber = {
   blob_cache = {},
   ---@type {[blob_path]: {[cache_id]: (nil | callback_details[]) }}
   running_cache = {},
+  ---@type {[blob_path]: {[cache_id]: (nil | callback_details[]) }}
+  error_cache = {},
   max_retry_number = 5
 }
 
@@ -114,9 +116,9 @@ function blobber.blobify(
   callback,
   error_callback
 )
-  -- resize to a suitable height
+  -- Resize to a suitable height
   local resize = ("x%d"):format(extmark.height * sixel_raw.char_pixel_height)
-  -- crop to the right size
+  -- Crop to the right size
   local crop = ("x%d+0+%d"):format(
     (extmark.height - extmark.crop_row_start - extmark.crop_row_end) * sixel_raw.char_pixel_height,
     extmark.crop_row_start * sixel_raw.char_pixel_height
@@ -124,6 +126,7 @@ function blobber.blobify(
 
   local stdout = vim.loop.new_pipe()
   local stderr = vim.loop.new_pipe()
+  -- Run ImageMagick command
   vim.loop.spawn("magick", {
     args = {
       filepath .. "[0]",
@@ -137,7 +140,6 @@ function blobber.blobify(
     detached = true
   })
 
-  -- Run ImageMagick command
   local sixel = ""
   stdout:read_start(function(err, data)
     assert(not err, err)
@@ -149,7 +151,7 @@ function blobber.blobify(
   stderr:read_start(function(err, data)
     assert(not err, err)
     if data == nil then
-      if error_callback ~= nil then error_callback(filepath, extmark, data) end
+      if error_callback ~= nil then error_callback(filepath, extmark, error_) end
       return
     end
     error_ = error_ .. data
@@ -228,16 +230,27 @@ end
 ---@param extmark wrapped_extmark
 ---@param error_ string
 function blobber.update_errors(path, extmark, error_)
-  if error_ == nil then return end
+  if error_ == "" then return end
   local index = extmark_to_cache_id(extmark)
+  local locations = {}
+
+  for _, location in ipairs(blobber.running_cache[path][index]) do
+    table.insert(locations, location)
+  end
+
+  pcall(function()
+    for _, location in ipairs(blobber.error_cache[path][index]) do
+      table.insert(locations, location)
+    end
+  end)
 
   -- Set errors on the extmarks that were awaiting being drawn
-  -- XXX Still need to set the extmark error, even if the running cache doesn't remember it!
   vim.defer_fn(function()
-    for _, callback_details in ipairs(blobber.running_cache[path][index]) do
-      vim.api.nvim_buf_call(callback_details.buffer_id, function()
+
+    for _, location in ipairs(locations) do
+      vim.api.nvim_buf_call(location.buffer_id, function()
         interface.set_extmark_error(
-          callback_details.extmark_id,
+          location.extmark_id,
           error_
         )
       end)
@@ -286,10 +299,22 @@ end
 -- No extmarks will be drawn when the blobber finishes.
 --
 function blobber.clear_running()
-  -- XXX Still need to set the extmark error, even if the running cache doesn't remember it!
   for path, layer2 in pairs(blobber.running_cache) do
-    for index, _ in pairs(layer2) do
-      blobber.running_cache[path][index] = nil
+    if blobber.error_cache[path] == nil then
+      blobber.error_cache[path] = {}
+    end
+
+    for index, data in pairs(layer2) do
+      -- Drop data from being called when the blobber finishes
+      blobber.running_cache[path][index] = {}
+
+      -- Append to the error cache
+      if blobber.error_cache[path][index] == nil then
+        blobber.error_cache[path][index] = {}
+      end
+      for _, datum in ipairs(data) do
+        table.insert(blobber.error_cache[path][index], datum)
+      end
     end
   end
 end

@@ -119,6 +119,8 @@ local function inline_extmark(extmark, windims, buffer_id, cursor_line)
     crop_row_end = crop_row_end,
     buffer_id = buffer_id,
     details = extmark[4],
+    path = vim.b.image_extmark_to_path[tostring(extmark[1])],
+    error = vim.b.image_extmark_to_error[tostring(extmark[1])],
     screen_position = window_to_terminal(start_row + crop_row_start, windims)
   }
 end
@@ -194,6 +196,8 @@ local function virt_lines_extmark(extmark, windims, buffer_id)
     crop_row_end = crop_row_end,
     buffer_id = buffer_id,
     details = extmark[4],
+    path = vim.b.image_extmark_to_path[tostring(extmark[1])],
+    error = vim.b.image_extmark_to_error[tostring(extmark[1])],
     screen_position = window_to_terminal(start_row + crop_row_start, windims, 1)
   }
 end
@@ -225,6 +229,14 @@ end
 ---@param force boolean
 ---@return wrapped_extmark[], boolean
 function window_drawing.extmarks_needing_update(force)
+  if vim.b.image_extmark_to_path == nil then
+    vim.b.image_extmark_to_path = vim.empty_dict()
+  end
+
+  if vim.b.image_extmark_to_error == nil then
+    vim.b.image_extmark_to_error = vim.empty_dict()
+  end
+
   -- Get current cached dimensions and newest dimensions
   local window_cache = vim.w.vim_image_window_cache
   local new_dims = get_windims()

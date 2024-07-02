@@ -32,6 +32,8 @@ local interface = require "nvim_image_extmarks.interface"
 ---@field crop_row_end integer
 ---@field buffer_id integer
 ---@field details extmark_details
+---@field path string | nil
+---@field error string | nil
 ---@field screen_position [integer, integer]
 
 ---@alias blob_path string
@@ -51,7 +53,7 @@ local blobber = {
   running_cache = {},
   ---@type {[blob_path]: {[cache_id]: (nil | callback_details[]) }}
   error_cache = {},
-  max_retry_number = 5
+  max_retry_count = 5
 }
 
 
@@ -106,12 +108,10 @@ end
 
 -- Convert extmark parameters into a sixel blob by starting an ImageMagick subprocess.
 --
----@param filepath blob_path A path to a file, from which the image blob is generated
 ---@param extmark wrapped_extmark A wrapped extmark, containing height and crop data (in rows)
----@param callback fun(filepath: string, extmark: wrapped_extmark, blob: string): any A callback function which is called with the generated blob
----@param error_callback? fun(filepath: string, extmark: wrapped_extmark, errors: string): any An optional callback function, called with error information
+---@param callback fun(extmark: wrapped_extmark, blob: string): any A callback function which is called with the generated blob
+---@param error_callback? fun(extmark: wrapped_extmark, errors: string): any An optional callback function, called with error information
 function blobber.blobify(
-  filepath,
   extmark,
   callback,
   error_callback
@@ -129,7 +129,7 @@ function blobber.blobify(
   -- Run ImageMagick command
   vim.loop.spawn("magick", {
     args = {
-      filepath .. "[0]",
+      extmark.path .. "[0]",
       "-resize",
       resize,
       "-crop",
@@ -143,7 +143,7 @@ function blobber.blobify(
   local sixel = ""
   stdout:read_start(function(err, data)
     assert(not err, err)
-    if data == nil then callback(filepath, extmark, sixel) return end
+    if data == nil then callback(extmark, sixel) return end
     sixel = sixel .. data
   end)
 
@@ -151,7 +151,7 @@ function blobber.blobify(
   stderr:read_start(function(err, data)
     assert(not err, err)
     if data == nil then
-      if error_callback ~= nil then error_callback(filepath, extmark, error_) end
+      if error_callback ~= nil then error_callback(extmark, error_) end
       return
     end
     error_ = error_ .. data
@@ -159,44 +159,19 @@ function blobber.blobify(
 end
 
 
----@param path string
 ---@param extmark wrapped_extmark
 ---@param blob string
-function blobber.store_and_draw_blob(path, extmark, blob)
+function blobber.store_and_draw_blob(extmark, blob)
   local index = extmark_to_cache_id(extmark)
+  local path = extmark.path
   local locations = blobber.running_cache[path][index]
 
-  if locations == nil then return end
-
-  -- Requeue quiet ImageMagick failure
-  if blob:len() == 0 then
+  if
+    locations == nil
+    or path == nil
+    or blob == ""
+  then
     blobber.running_cache[path][index] = nil
-
-    -- Find out how many failures we had
-    local max_retry_number = 0
-    for _, location in ipairs(locations) do
-      max_retry_number = math.max(max_retry_number, location.retry_number or 0)
-    end
-
-    if max_retry_number > blobber.max_retry_count then
-      vim.notify(
-        ("Converting '%s' to blob yielded no response %d times!"):format(
-          path,
-          max_retry_number
-        ),
-        3
-      )
-      return
-    end
-
-    blobber.try_generate_blob(path, extmark)
-
-    -- Add the other locations
-    blobber.running_cache[path][index] = locations
-    for _, location in ipairs(locations) do
-      location.retry_number = (location.retry_number or 0) + 1
-    end
-
     return
   end
 
@@ -226,13 +201,36 @@ function blobber.store_and_draw_blob(path, extmark, blob)
 end
 
 
----@param path string
 ---@param extmark wrapped_extmark
 ---@param error_ string
-function blobber.update_errors(path, extmark, error_)
+function blobber.update_errors(extmark, error_)
   if error_ == "" then return end
+
   local index = extmark_to_cache_id(extmark)
-  local locations = {}
+  local path = extmark.path
+
+  local locations = blobber.running_cache[path][index]
+
+  -- Find out how many failures we had
+  local max_retry_number = 0
+  for _, location in ipairs(locations) do
+    max_retry_number = math.max(max_retry_number, location.retry_number or 0)
+  end
+
+  if max_retry_number <= blobber.max_retry_count then
+    blobber.try_generate_blob(extmark)
+
+    -- Add the other locations
+    blobber.running_cache[path][index] = locations
+    for _, location in ipairs(locations) do
+      location.retry_number = (location.retry_number or 0) + 1
+    end
+
+    return
+  end
+
+  -- Too many errors occurred
+  locations = {}
 
   for _, location in ipairs(blobber.running_cache[path][index]) do
     table.insert(locations, location)
@@ -246,15 +244,16 @@ function blobber.update_errors(path, extmark, error_)
 
   -- Set errors on the extmarks that were awaiting being drawn
   vim.defer_fn(function()
-
     for _, location in ipairs(locations) do
       vim.api.nvim_buf_call(location.buffer_id, function()
         interface.set_extmark_error(
           location.extmark_id,
-          error_
+          "Failed to convert extmark to blob!"
         )
       end)
     end
+
+    vim.notify("ImageMagick failure occurred: " .. error_)
   end, 0)
 end
 
@@ -267,31 +266,29 @@ end
 -- When the blobber finishes, all remembered extmarks since
 -- the last `blob_cache.clear_running` will be drawn.
 --
----@param path string
 ---@param extmark wrapped_extmark
-function blobber.try_generate_blob(path, extmark)
+function blobber.try_generate_blob(extmark)
   local index = extmark_to_cache_id(extmark)
 
-  if blobber.running_cache[path] == nil then
-    blobber.running_cache[path] = {}
+  if blobber.running_cache[extmark.path] == nil then
+    blobber.running_cache[extmark.path] = {}
   end
-  if blobber.running_cache[path][index] ~= nil then
+  if blobber.running_cache[extmark.path][index] ~= nil then
     -- Blob is being generated, just remember to draw it later
     table.insert(
-      blobber.running_cache[path][index],
+      blobber.running_cache[extmark.path][index],
       as_callback_details(extmark)
     )
     return
   end
 
   blobber.blobify(
-    path,
     extmark,
     blobber.store_and_draw_blob,
     blobber.update_errors
   )
 
-  blobber.running_cache[path][index] = { as_callback_details(extmark) }
+  blobber.running_cache[extmark.path][index] = { as_callback_details(extmark) }
 end
 
 
@@ -312,7 +309,7 @@ function blobber.clear_running()
       if blobber.error_cache[path][index] == nil then
         blobber.error_cache[path][index] = {}
       end
-      for _, datum in ipairs(data) do
+      for _, datum in ipairs(data or {}) do
         table.insert(blobber.error_cache[path][index], datum)
       end
     end
@@ -320,30 +317,21 @@ function blobber.clear_running()
 end
 
 
+-- Either retrieve a blob from the cache, or start blobifying and return nil.
+--
 ---@param extmark wrapped_extmark
 ---@return [string, [number, number]] | nil
 function blobber.lookup_or_generate_blob(extmark)
   return vim.api.nvim_buf_call(extmark.buffer_id, function()
-    if vim.b.image_extmark_to_path == nil then
-      vim.b.image_extmark_to_path = vim.empty_dict()
-    end
-
-    if vim.b.image_extmark_to_error == nil then
-      vim.b.image_extmark_to_error = vim.empty_dict()
-    end
-
-    local error = vim.b.image_extmark_to_error[tostring(extmark.details.id)]
-    local path = vim.b.image_extmark_to_path[tostring(extmark.details.id)]
-
-    if error ~= nil then
+    if extmark.error ~= nil then
       interface.set_extmark_error(
         extmark.details.id,
-        error,
+        extmark.error,
         false
       )
       return nil
     end
-    if path == nil then
+    if extmark.path == nil then
       interface.set_extmark_error(
         extmark.details.id,
         "Could not match extmark to content!"
@@ -360,19 +348,19 @@ function blobber.lookup_or_generate_blob(extmark)
       extmark.details
     )
 
-    local cache_lookup = blobber.get(path, extmark)
+    local cache_lookup = blobber.get(extmark.path, extmark)
 
     if cache_lookup == nil then
       -- Try to find the file
-      if vim.fn.filereadable(path) == 0 then
+      if vim.fn.filereadable(extmark.path) == 0 then
         interface.set_extmark_error(
           extmark.details.id,
-          ("Cannot read file `%s`!"):format(path)
+          ("Cannot read file `%s`!"):format(extmark.path)
         )
         return nil
       end
 
-      blobber.try_generate_blob(path, extmark)
+      blobber.try_generate_blob(extmark)
       return nil
     end
 

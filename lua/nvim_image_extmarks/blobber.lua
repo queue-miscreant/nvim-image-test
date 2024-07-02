@@ -42,12 +42,14 @@ local interface = require "nvim_image_extmarks.interface"
 ---@field screen_position extmark_coords
 ---@field extmark_id integer
 ---@field buffer_id integer
+---@field retry_number? integer
 
 local blobber = {
   ---@type {[blob_path]: {[cache_id]: string}}
   blob_cache = {},
   ---@type {[blob_path]: {[cache_id]: (nil | callback_details[]) }}
-  running_cache = {}
+  running_cache = {},
+  max_retry_number = 5
 }
 
 
@@ -158,15 +160,41 @@ end
 ---@param path string
 ---@param extmark wrapped_extmark
 ---@param blob string
-function blobber.store_blob(path, extmark, blob)
+function blobber.store_and_draw_blob(path, extmark, blob)
   local index = extmark_to_cache_id(extmark)
+  local locations = blobber.running_cache[path][index]
 
-  -- TODO: occasional quiet ImageMagick failure
+  if locations == nil then return end
+
+  -- Requeue quiet ImageMagick failure
   if blob:len() == 0 then
-    vim.print(vim.inspect{extmark, path})
-
-    -- Blobber no longer running
     blobber.running_cache[path][index] = nil
+
+    -- Find out how many failures we had
+    local max_retry_number = 0
+    for _, location in ipairs(locations) do
+      max_retry_number = math.max(max_retry_number, location.retry_number or 0)
+    end
+
+    if max_retry_number > blobber.max_retry_count then
+      vim.notify(
+        ("Converting '%s' to blob yielded no response %d times!"):format(
+          path,
+          max_retry_number
+        ),
+        3
+      )
+      return
+    end
+
+    blobber.try_generate_blob(path, extmark)
+
+    -- Add the other locations
+    blobber.running_cache[path][index] = locations
+    for _, location in ipairs(locations) do
+      location.retry_number = (location.retry_number or 0) + 1
+    end
+
     return
   end
 
@@ -179,16 +207,15 @@ function blobber.store_blob(path, extmark, blob)
     blobber.blob_cache[path] = temp
   end
 
-  fire_pre_draw(blobber.running_cache[path][index])
+  fire_pre_draw(locations)
 
   sixel_raw.draw_sixels(
     vim.tbl_map(
       ---@param callback_details callback_details
-      ---@return [ string, number[] ]
       function(callback_details)
-        return { blob, callback_details.screen_position }
+        return { blob, callback_details.screen_position } ---[[@as return [ string, number[] ] ]]
       end,
-      blobber.running_cache[path][index]
+      locations
     ) --[[@as [ string, number[] ][] ]]
   )
 
@@ -247,7 +274,7 @@ function blobber.try_generate_blob(path, extmark)
   blobber.blobify(
     path,
     extmark,
-    blobber.store_blob,
+    blobber.store_and_draw_blob,
     blobber.update_errors
   )
 
@@ -364,7 +391,7 @@ function blobber.get(path, extmark)
 end
 
 ---@param path? (string | string[])
-function blobber.clear(path)
+function blobber.clear_cache(path)
   if path == nil then
     blobber.blob_cache = {}
   elseif type(path) == "table" then

@@ -197,7 +197,7 @@ end
 --
 ---@param path? (string | string[])
 function sixel_extmarks.clear_cache(path)
-  interface.clear_cache(path)
+  blobber.clear_cache(path)
 end
 
 

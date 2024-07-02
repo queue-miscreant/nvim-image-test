@@ -5,20 +5,6 @@
 
 local ffi = require "ffi"
 
----@class extmark_details
----@field id integer
----@field end_row? integer
----@field virt_lines? [string, string][][]
-
----@class wrapped_extmark
----@field start_row integer
----@field height integer
----@field crop_row_start integer
----@field crop_row_end integer
----@field buffer_id integer
----@field details extmark_details
----@field screen_position [integer, integer]
-
 local sixel_raw = {
   tty = nil,
   char_pixel_height = 0,
@@ -146,61 +132,6 @@ end
 --
 function sixel_raw.enable_drawing()
   sixel_raw.drawing_enabled = true
-end
-
-
--- Convert extmark parameters into a sixel blob by starting an ImageMagick subprocess.
---
----@param extmark wrapped_extmark A wrapped extmark, containing height and crop data (in rows)
----@param filepath string A path to a file, from which the image blob is generated
----@param callback fun(blob: string): any A callback function which is called with the generated blob
----@param error_callback? fun(errors: string): any An optional callback function, called with error information
-function sixel_raw.blobify(
-  extmark,
-  filepath,
-  callback,
-  error_callback
-)
-  -- resize to a suitable height
-  local resize = ("x%d"):format(extmark.height * sixel_raw.char_pixel_height)
-  -- crop to the right size
-  local crop = ("x%d+0+%d"):format(
-    (extmark.height - extmark.crop_row_start - extmark.crop_row_end) * sixel_raw.char_pixel_height,
-    extmark.crop_row_start * sixel_raw.char_pixel_height
-  )
-
-  local stdout = vim.loop.new_pipe()
-  local stderr = vim.loop.new_pipe()
-  vim.loop.spawn("magick", {
-    args = {
-      filepath .. "[0]",
-      "-resize",
-      resize,
-      "-crop",
-      crop,
-      "sixel:-"
-    },
-    stdio = {nil, stdout, stderr},
-    detached = true
-  })
-
-  -- Run ImageMagick command
-  local sixel = ""
-  stdout:read_start(function(err, data)
-    assert(not err, err)
-    if data == nil then callback(sixel) return end
-    sixel = sixel .. data
-  end)
-
-  local error_ = ""
-  stderr:read_start(function(err, data)
-    assert(not err, err)
-    if data == nil then
-      if error_callback ~= nil then error_callback(data) end
-      return
-    end
-    error_ = error_ .. "\n" .. data
-  end)
 end
 
 return sixel_raw

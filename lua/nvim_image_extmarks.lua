@@ -291,9 +291,9 @@ function sixel_extmarks.redraw(force)
       end)
 
       if sixel_raw.screen_cleared then
-        window_drawing.draw_blobs(draw_accum)
+        blob_cache.draw(draw_accum)
       else
-        window_drawing.draw_blobs(lazy_draw_accum)
+        blob_cache.draw(lazy_draw_accum)
       end
     end)
   )

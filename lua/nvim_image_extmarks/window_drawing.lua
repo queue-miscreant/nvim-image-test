@@ -1,11 +1,8 @@
 -- nvim_image_extmarks/window_drawing.lua
 --
--- Sixel drawing functionality, relative to the current window state.
+-- Gather information about current extmark positions, relative to the current window.
 
-
-local sixel_raw = require "nvim_image_extmarks.sixel_raw"
 local interface = require "nvim_image_extmarks.interface"
-local blob_cache = require "nvim_image_extmarks.blob_cache"
 
 local window_drawing = {}
 
@@ -245,18 +242,5 @@ function window_drawing.extmarks_needing_update(force)
   return visible_extmarks, need_clear
 end
 
-
----@param extmarks wrapped_extmark[]
-function window_drawing.draw_blobs(extmarks)
-  blob_cache.clear_running()
-
-  local blobs = vim.tbl_map(
-    blob_cache.lookup_or_generate_blob,
-    extmarks
-  )
-
-  blob_cache.fire_pre_draw(extmarks)
-  sixel_raw.draw_sixels(blobs)
-end
 
 return window_drawing

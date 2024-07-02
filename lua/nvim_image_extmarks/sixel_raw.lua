@@ -70,11 +70,12 @@ end
 ---@param blob string
 ---@param winpos [integer, integer]
 function sixel_raw.draw_sixel(blob, winpos)
-  if sixel_raw.tty == nil then
-    sixel_raw.get_tty()
-  end
 
   pcall(function()
+    if sixel_raw.tty == nil then
+      sixel_raw.get_tty()
+    end
+
     local stdout = assert(io.open(sixel_raw.tty, "ab"))
     stdout:write(("\x1b[s\x1b[%d;%dH"):format(winpos[1], winpos[2]))
     stdout:write(blob)
@@ -90,12 +91,11 @@ end
 --
 ---@param blob_ranges [string, [integer, integer]][]
 function sixel_raw.draw_sixels(blob_ranges)
-  if sixel_raw.tty == nil then
-    vim.notify("Could not find the terminal device!", 3, {})
-    return
-  end
-
   pcall(function()
+    if sixel_raw.tty == nil then
+      sixel_raw.get_tty()
+    end
+
     local stdout = assert(io.open(sixel_raw.tty, "ab"))
     stdout:write("\x1b[s")
 
@@ -165,14 +165,11 @@ function sixel_raw.blobify(
   })
 
   -- Run ImageMagick command
-  local sixel = {}
+  local sixel = ""
   stdout:read_start(function(err, data)
     assert(not err, err)
-    if data == nil then
-      callback(table.concat(sixel, ""))
-      return
-    end
-    table.insert(sixel, data)
+    if data == nil then callback(sixel) return end
+    sixel = sixel .. data
   end)
 
   local error_ = ""

@@ -106,6 +106,12 @@ function blob_cache.generate_blob(path, extmark)
     extmark,
     path,
     function(blob)
+      -- TODO: occasional quiet ImageMagick failure
+      if blob:len() == 0 then
+        vim.print(vim.inspect{extmark, path})
+        return
+      end
+
       ---@cast blob string
       blob_cache.insert(blob, path, extmark)
 

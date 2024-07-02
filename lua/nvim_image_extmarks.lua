@@ -228,31 +228,31 @@ function sixel_extmarks.redraw(force)
   local new_extmarks = {}
   local new_count = 0
 
-  ---@type [integer, wrapped_extmark[]][]
-  local need_update = vim.tbl_map(function(window)
-    return vim.api.nvim_win_call(window, function()
+  ---@type wrapped_extmark[]
+  local draw_accum = {}
+  ---@type wrapped_extmark[]
+  local lazy_draw_accum = {}
+
+  for _, window in pairs(windows) do
+    vim.api.nvim_win_call(window, function()
       local extmarks_to_draw, need_clear_window = window_drawing.extmarks_needing_update(
         force or false
       )
       need_clear = need_clear or need_clear_window
 
-      local lazy_extmarks_to_draw = {}
-
       for _, extmark in pairs(extmarks_to_draw) do
         local cache_entry = window_drawing.extmark_cache_entry(window, extmark)
         new_extmarks[cache_entry] = true
+        table.insert(draw_accum, extmark)
 
         -- Add to the lazy list if we didn't draw it previously
         if previous_extmarks[cache_entry] == nil then
-          table.insert(lazy_extmarks_to_draw, extmark)
+          table.insert(lazy_draw_accum, extmark)
           new_count = new_count + 1
         end
       end
-
-      ---@type [integer, wrapped_extmark[], wrapped_extmark[]]
-      return { window, extmarks_to_draw, lazy_extmarks_to_draw }
     end)
-  end, windows)
+  end
 
   for cache_entry, _ in pairs(previous_extmarks) do
     -- If we're not drawing an extmark that was drawn previously, clear the screen
@@ -290,18 +290,10 @@ function sixel_extmarks.redraw(force)
         extmark_timer:close()
       end)
 
-      for _, window_extmarks in pairs(need_update) do
-        -- Ephemeral windows from external plugins
-        if not vim.api.nvim_win_is_valid(window_extmarks[1]) then goto continue end
-        vim.api.nvim_win_call(window_extmarks[1], function()
-          -- Draw all if screen cleared, else only new
-          if sixel_raw.screen_cleared then
-            window_drawing.draw_blobs(window_extmarks[2])
-          else
-            window_drawing.draw_blobs(window_extmarks[3])
-          end
-        end)
-        ::continue::
+      if sixel_raw.screen_cleared then
+        window_drawing.draw_blobs(draw_accum)
+      else
+        window_drawing.draw_blobs(lazy_draw_accum)
       end
     end)
   )

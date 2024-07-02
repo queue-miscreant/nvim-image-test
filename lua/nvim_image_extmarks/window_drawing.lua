@@ -7,17 +7,8 @@ local sixel_raw = require "nvim_image_extmarks.sixel_raw"
 local interface = require "nvim_image_extmarks.interface"
 local blob_cache = require "nvim_image_extmarks.blob_cache"
 
-pcall(sixel_raw.get_tty)
-
----@class debounce_data
----@field extmark wrapped_extmark
----@field draw_number integer
-
 local window_drawing = {
-  ---@type table<string, debounce_data>
-  debounce = {},
   enabled = true,
-  just_enabled = true
 }
 
 
@@ -236,54 +227,64 @@ end
 ---@param extmark wrapped_extmark
 ---@return [string, [number, number]] | nil
 local function lookup_or_generate_blob(extmark)
-  local error = vim.b.image_extmark_to_error[tostring(extmark.details.id)]
-  local path = vim.b.image_extmark_to_path[tostring(extmark.details.id)]
+  return vim.api.nvim_buf_call(extmark.buffer_id, function()
+    if vim.b.image_extmark_to_path == nil then
+      vim.b.image_extmark_to_path = vim.empty_dict()
+    end
 
-  if error ~= nil then
-    interface.set_extmark_error(
-      extmark.details.id,
-      error,
-      false
-    )
-    return nil
-  end
-  if path == nil then
-    interface.set_extmark_error(
-      extmark.details.id,
-      "Could not match extmark to content!"
-    )
-    return nil
-  end
+    if vim.b.image_extmark_to_error == nil then
+      vim.b.image_extmark_to_error = vim.empty_dict()
+    end
 
-  -- Get rid of the text
-  vim.api.nvim_buf_set_extmark(
-    0,
-    interface.namespace,
-    extmark.start_row,
-    0,
-    extmark.details
-  )
+    local error = vim.b.image_extmark_to_error[tostring(extmark.details.id)]
+    local path = vim.b.image_extmark_to_path[tostring(extmark.details.id)]
 
-  local cache_lookup = blob_cache.get(path, extmark)
-
-  if cache_lookup == nil then
-    -- Try to find the file
-    if vim.fn.filereadable(path) == 0 then
+    if error ~= nil then
       interface.set_extmark_error(
         extmark.details.id,
-        ("Cannot read file `%s`!"):format(path)
+        error,
+        false
+      )
+      return nil
+    end
+    if path == nil then
+      interface.set_extmark_error(
+        extmark.details.id,
+        "Could not match extmark to content!"
       )
       return nil
     end
 
-    blob_cache.generate_blob(path, extmark)
-    return nil
-  end
+    -- Get rid of the text
+    vim.api.nvim_buf_set_extmark(
+      0,
+      interface.namespace,
+      extmark.start_row,
+      0,
+      extmark.details
+    )
 
-  return {
-    cache_lookup,
-    extmark.screen_position
-  }
+    local cache_lookup = blob_cache.get(path, extmark)
+
+    if cache_lookup == nil then
+      -- Try to find the file
+      if vim.fn.filereadable(path) == 0 then
+        interface.set_extmark_error(
+          extmark.details.id,
+          ("Cannot read file `%s`!"):format(path)
+        )
+        return nil
+      end
+
+      blob_cache.generate_blob(path, extmark)
+      return nil
+    end
+
+    return {
+      cache_lookup,
+      extmark.screen_position
+    }
+  end)
 end
 
 
@@ -301,11 +302,6 @@ function window_drawing.extmarks_needing_update(force)
   -- Update cache
   vim.w.vim_image_window_cache = new_dims
 
-  -- TODO: move this outside this function
-  if window_drawing.just_enabled then
-    window_drawing.just_enabled = false
-  end
-
   local need_clear = force
     or #visible_extmarks > 0 and not vim.deep_equal(new_dims, window_cache) -- Window has moved
 
@@ -315,19 +311,12 @@ end
 
 ---@param extmarks (wrapped_extmark | nil)[]
 function window_drawing.draw_blobs(extmarks)
-  if vim.b.image_extmark_to_path == nil then
-    vim.b.image_extmark_to_path = vim.empty_dict()
-  end
-
-  if vim.b.image_extmark_to_error == nil then
-    vim.b.image_extmark_to_error = vim.empty_dict()
-  end
-
   local blobs = vim.tbl_map(
     lookup_or_generate_blob,
     extmarks
   )
 
+  -- XXX TODO
   if window_drawing.enabled then
     blob_cache.fire_pre_draw(extmarks)
     sixel_raw.draw_sixels(blobs)
@@ -341,7 +330,6 @@ end
 --
 function window_drawing.disable_drawing()
   window_drawing.enabled = false
-  window_drawing.just_enabled = false
 end
 
 
@@ -349,7 +337,6 @@ end
 --
 function window_drawing.enable_drawing()
   window_drawing.enabled = true
-  window_drawing.just_enabled = true
 end
 
 return window_drawing

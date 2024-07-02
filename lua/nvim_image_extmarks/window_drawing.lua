@@ -7,9 +7,7 @@ local sixel_raw = require "nvim_image_extmarks.sixel_raw"
 local interface = require "nvim_image_extmarks.interface"
 local blob_cache = require "nvim_image_extmarks.blob_cache"
 
-local window_drawing = {
-  enabled = true,
-}
+local window_drawing = {}
 
 
 -- Format extmark parameters which influence sixel data.
@@ -150,9 +148,11 @@ local function virt_lines_extmark(extmark, windims, buffer_id)
     if windims.topfill == 0 then
       return nil
     end
+
     -- In very rare circumstances (multiple extmarks on the same line?),
     -- this won't work, but let's not worry about that
     crop_row_start = height - windims.topfill
+
   -- Extmark at the bottom of the screen
   elseif start_row + 1 == windims.botline then
     -- Calculate the lines missing from the bottom
@@ -160,6 +160,7 @@ local function virt_lines_extmark(extmark, windims, buffer_id)
       start_row = windims.topline,
       end_row = windims.botline,
     }
+
     if windims.botline == vim.fn.line("$") then
       text_height_params.end_row = nil
     end
@@ -224,70 +225,6 @@ function window_drawing.get_visible_extmarks(dims)
 end
 
 
----@param extmark wrapped_extmark
----@return [string, [number, number]] | nil
-local function lookup_or_generate_blob(extmark)
-  return vim.api.nvim_buf_call(extmark.buffer_id, function()
-    if vim.b.image_extmark_to_path == nil then
-      vim.b.image_extmark_to_path = vim.empty_dict()
-    end
-
-    if vim.b.image_extmark_to_error == nil then
-      vim.b.image_extmark_to_error = vim.empty_dict()
-    end
-
-    local error = vim.b.image_extmark_to_error[tostring(extmark.details.id)]
-    local path = vim.b.image_extmark_to_path[tostring(extmark.details.id)]
-
-    if error ~= nil then
-      interface.set_extmark_error(
-        extmark.details.id,
-        error,
-        false
-      )
-      return nil
-    end
-    if path == nil then
-      interface.set_extmark_error(
-        extmark.details.id,
-        "Could not match extmark to content!"
-      )
-      return nil
-    end
-
-    -- Get rid of the text
-    vim.api.nvim_buf_set_extmark(
-      0,
-      interface.namespace,
-      extmark.start_row,
-      0,
-      extmark.details
-    )
-
-    local cache_lookup = blob_cache.get(path, extmark)
-
-    if cache_lookup == nil then
-      -- Try to find the file
-      if vim.fn.filereadable(path) == 0 then
-        interface.set_extmark_error(
-          extmark.details.id,
-          ("Cannot read file `%s`!"):format(path)
-        )
-        return nil
-      end
-
-      blob_cache.generate_blob(path, extmark)
-      return nil
-    end
-
-    return {
-      cache_lookup,
-      extmark.screen_position
-    }
-  end)
-end
-
-
 ---@param force boolean
 ---@return wrapped_extmark[], boolean
 function window_drawing.extmarks_needing_update(force)
@@ -309,34 +246,17 @@ function window_drawing.extmarks_needing_update(force)
 end
 
 
----@param extmarks (wrapped_extmark | nil)[]
+---@param extmarks wrapped_extmark[]
 function window_drawing.draw_blobs(extmarks)
+  blob_cache.clear_running()
+
   local blobs = vim.tbl_map(
-    lookup_or_generate_blob,
+    blob_cache.lookup_or_generate_blob,
     extmarks
   )
 
-  -- XXX TODO
-  if window_drawing.enabled then
-    blob_cache.fire_pre_draw(extmarks)
-    sixel_raw.draw_sixels(blobs)
-  end
-end
-
-
--- Disable drawing blobs.
--- Blobs will still be generated in the background, but the contents will not
--- be pushed to the screen.
---
-function window_drawing.disable_drawing()
-  window_drawing.enabled = false
-end
-
-
--- Enable drawing blobs, after having disabled them with `disable_drawing`.
---
-function window_drawing.enable_drawing()
-  window_drawing.enabled = true
+  blob_cache.fire_pre_draw(extmarks)
+  sixel_raw.draw_sixels(blobs)
 end
 
 return window_drawing

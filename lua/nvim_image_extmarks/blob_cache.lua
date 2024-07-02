@@ -109,11 +109,22 @@ function blob_cache.generate_blob(path, extmark)
       -- TODO: occasional quiet ImageMagick failure
       if blob:len() == 0 then
         vim.print(vim.inspect{extmark, path})
+
+        -- Blobber no longer running
+        blob_cache.running[path][index] = nil
         return
       end
 
-      ---@cast blob string
-      blob_cache.insert(blob, path, extmark)
+      -- Insert blob into cache
+      if blob_cache.contents[path] ~= nil then
+        blob_cache.contents[path][index] = blob
+      else
+        local temp = {}
+        temp[index] = blob
+        blob_cache.contents[path] = temp
+      end
+
+      blob_cache.fire_pre_draw(blob_cache.running[path][index])
 
       sixel_raw.draw_sixels(
         vim.tbl_map(
@@ -126,7 +137,7 @@ function blob_cache.generate_blob(path, extmark)
         ) --[[@as [ string, number[] ][] ]]
       )
 
-      -- Not drawing this blob
+      -- Blobber no longer running
       blob_cache.running[path][index] = nil
     end,
     function(error_)
@@ -157,19 +168,67 @@ function blob_cache.generate_blob(path, extmark)
 end
 
 
----@param blob string
----@param path string
 ---@param extmark wrapped_extmark
-function blob_cache.insert(blob, path, extmark)
-  local index = extmark_to_cache_id(extmark)
+---@return [string, [number, number]] | nil
+function blob_cache.lookup_or_generate_blob(extmark)
+  return vim.api.nvim_buf_call(extmark.buffer_id, function()
+    if vim.b.image_extmark_to_path == nil then
+      vim.b.image_extmark_to_path = vim.empty_dict()
+    end
 
-  if blob_cache.contents[path] ~= nil then
-    blob_cache.contents[path][index] = blob
-  else
-    local temp = {}
-    temp[index] = blob
-    blob_cache.contents[path] = temp
-  end
+    if vim.b.image_extmark_to_error == nil then
+      vim.b.image_extmark_to_error = vim.empty_dict()
+    end
+
+    local error = vim.b.image_extmark_to_error[tostring(extmark.details.id)]
+    local path = vim.b.image_extmark_to_path[tostring(extmark.details.id)]
+
+    if error ~= nil then
+      interface.set_extmark_error(
+        extmark.details.id,
+        error,
+        false
+      )
+      return nil
+    end
+    if path == nil then
+      interface.set_extmark_error(
+        extmark.details.id,
+        "Could not match extmark to content!"
+      )
+      return nil
+    end
+
+    -- Get rid of the error text, if there is any
+    vim.api.nvim_buf_set_extmark(
+      0,
+      interface.namespace,
+      extmark.start_row,
+      0,
+      extmark.details
+    )
+
+    local cache_lookup = blob_cache.get(path, extmark)
+
+    if cache_lookup == nil then
+      -- Try to find the file
+      if vim.fn.filereadable(path) == 0 then
+        interface.set_extmark_error(
+          extmark.details.id,
+          ("Cannot read file `%s`!"):format(path)
+        )
+        return nil
+      end
+
+      blob_cache.generate_blob(path, extmark)
+      return nil
+    end
+
+    return {
+      cache_lookup,
+      extmark.screen_position
+    }
+  end)
 end
 
 

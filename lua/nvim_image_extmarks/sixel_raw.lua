@@ -22,7 +22,8 @@ local ffi = require "ffi"
 local sixel_raw = {
   tty = nil,
   char_pixel_height = 0,
-  screen_cleared = true
+  screen_cleared = true,
+  drawing_enabled = true
 }
 
 -- Ideally, this would be imported, but alas
@@ -70,6 +71,7 @@ end
 ---@param blob string
 ---@param winpos [integer, integer]
 function sixel_raw.draw_sixel(blob, winpos)
+  if not sixel_raw.drawing_enabled then return end
 
   pcall(function()
     if sixel_raw.tty == nil then
@@ -91,6 +93,8 @@ end
 --
 ---@param blob_ranges [string, [integer, integer]][]
 function sixel_raw.draw_sixels(blob_ranges)
+  if not sixel_raw.drawing_enabled then return end
+
   pcall(function()
     if sixel_raw.tty == nil then
       sixel_raw.get_tty()
@@ -126,6 +130,22 @@ function sixel_raw.clear_screen()
     vim.fn.system(("tmux detach -E 'tmux attach -t %s'"):format(tmux_session))
   end
   sixel_raw.screen_cleared = true
+end
+
+
+-- Disable drawing blobs.
+-- Blobs will still be generated in the background, but the contents will not
+-- be pushed to the screen.
+--
+function sixel_raw.disable_drawing()
+  sixel_raw.drawing_enabled = false
+end
+
+
+-- Enable drawing blobs, after having disabled them with `disable_drawing`.
+--
+function sixel_raw.enable_drawing()
+  sixel_raw.drawing_enabled = true
 end
 
 

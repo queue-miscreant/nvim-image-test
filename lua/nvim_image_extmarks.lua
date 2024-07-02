@@ -40,7 +40,7 @@ local function bind_local_autocmds()
         return
       end
 
-      window_drawing.disable_drawing()
+      sixel_raw.disable_drawing()
       sixel_raw.clear_screen()
     end
   })
@@ -53,7 +53,7 @@ local function bind_local_autocmds()
         return
       end
 
-      window_drawing.enable_drawing()
+      sixel_raw.enable_drawing()
     end
   })
   vim.b.bound_autocmds = true
@@ -315,7 +315,7 @@ end
 -- be pushed to the screen.
 --
 function sixel_extmarks.disable_drawing()
-  window_drawing.disable_drawing()
+  sixel_raw.disable_drawing()
 end
 
 
@@ -323,7 +323,7 @@ end
 --
 ---@param redraw? boolean Whether or not to redraw the screen afterward. True if not given.
 function sixel_extmarks.enable_drawing(redraw)
-  window_drawing.enable_drawing()
+  sixel_raw.enable_drawing()
   if redraw == nil or redraw then
     sixel_extmarks.redraw(true)
   end

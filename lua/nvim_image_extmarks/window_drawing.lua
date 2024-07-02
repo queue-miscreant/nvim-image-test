@@ -21,21 +21,6 @@ local window_drawing = {
 }
 
 
-local function fire_pre_draw(extmarks)
-  local errored = pcall(function()
-    vim.api.nvim_exec_autocmds("User", {
-      group = "ImageExtmarks#pre_draw",
-      data = extmarks
-    })
-  end)
-  if errored then
-    vim.api.nvim_exec_autocmds("User", {
-      group = "ImageExtmarks#pre_draw",
-    })
-  end
-end
-
-
 -- Format extmark parameters which influence sixel data.
 -- This is the identifier (extmark_id) along with data which can change as windows move
 -- around, such as crops.
@@ -79,6 +64,7 @@ end
 
 
 -- Convert window coordinates (start_row, end_row) to terminal coordinates
+--
 ---@param start_row wrapped_extmark The row of the buffer to start drawing on
 ---@param windims window_dimensions The current dimensions of the window
 ---@param additional_row_offset? integer An optional row offset for drawing the extmark
@@ -99,81 +85,15 @@ local function window_to_terminal(start_row, windims, additional_row_offset)
 end
 
 
----@param extmark wrapped_extmark
----@param path string
-local function schedule_generate_blob(extmark, path)
-  local win = vim.api.nvim_get_current_win()
-  local debounce = window_drawing.debounce[
-    tostring(win) .. "." .. tostring(extmark.details.id)
-  ]
-  local has_same_data = (
-    debounce ~= nil
-    and debounce.extmark.height == extmark.height
-    and debounce.extmark.crop_row_start == extmark.crop_row_start
-    and debounce.extmark.crop_row_end == extmark.crop_row_end
-  )
-
-  -- don't bother if we have a proces with identical parameters (size, crop) running
-  if has_same_data then
-    return
-  end
-
-  --TODO: this is VERY bad. Blobbing should only happen rarely, but many can happen for the same parameters
-  if debounce == nil then
-    debounce = {
-      extmark = extmark,
-      draw_number = 0
-    }
-  else
-    debounce = {
-      extmark = extmark,
-      draw_number = debounce.draw_number + 1
-    }
-  end
-  window_drawing.debounce[
-    tostring(win) .. "." .. tostring(extmark.details.id)
-  ] = debounce
-
-  sixel_raw.blobify(
-    extmark,
-    path,
-    function(blob)
-      vim.defer_fn(function()
-        if debounce.draw_number ~= window_drawing.debounce[
-          tostring(win) .. "." .. tostring(extmark.details.id)
-        ].draw_number then
-          return
-        end
-
-        fire_pre_draw{ extmark }
-
-        blob_cache.insert(blob, path, extmark)
-
-        sixel_raw.draw_sixel(
-          blob,
-          extmark.screen_position
-        )
-        window_drawing.debounce[tostring(extmark.details.id)] = nil
-      end, 0)
-    end,
-    function(error)
-      if error == nil then return end
-      vim.defer_fn(function()
-        interface.set_extmark_error(
-          extmark.details.id,
-          error
-        )
-      end, 0)
-    end
-  )
-end
-
-
+-- Convert inline extmark (with `end_row` set) to `wrapped_extmark`.
+-- If the extmark is not visible given the current window window dimensions, returns nil.
+--
 ---@param extmark any Raw extmark object that I don't care to type
 ---@param windims window_dimensions Window dimensions
+---@param buffer_id integer Buffer ID
 ---@param cursor_line integer Current cursor position
 ---@return wrapped_extmark | nil
-local function inline_extmark(extmark, windims, cursor_line)
+local function inline_extmark(extmark, windims, buffer_id, cursor_line)
   local start_row, end_row = extmark[2], extmark[4].end_row
 
   -- Not on screen
@@ -211,16 +131,21 @@ local function inline_extmark(extmark, windims, cursor_line)
     height = height,
     crop_row_start = crop_row_start,
     crop_row_end = crop_row_end,
+    buffer_id = buffer_id,
     details = extmark[4],
     screen_position = window_to_terminal(start_row + crop_row_start, windims)
-  } --[[@as wrapped_extmark]]
+  }
 end
 
 
+-- Convert virtual lines extmark (with `virt_lines` set) to `wrapped_extmark`.
+-- If the extmark is not visible given the current window window dimensions, returns nil.
+--
 ---@param extmark any Raw extmark object that I don't care to type
 ---@param windims window_dimensions Window dimensions
+---@param buffer_id integer Window ID
 ---@return wrapped_extmark | nil
-local function virt_lines_extmark(extmark, windims)
+local function virt_lines_extmark(extmark, windims, buffer_id)
   local start_row, height = extmark[2], #extmark[4].virt_lines
 
   local crop_row_start = 0
@@ -278,9 +203,10 @@ local function virt_lines_extmark(extmark, windims)
     height = height - 1,
     crop_row_start = crop_row_start,
     crop_row_end = crop_row_end,
+    buffer_id = buffer_id,
     details = extmark[4],
     screen_position = window_to_terminal(start_row + crop_row_start, windims, 1)
-  } --[[@as wrapped_extmark]]
+  }
 end
 
 
@@ -295,12 +221,13 @@ function window_drawing.get_visible_extmarks(dims)
     { details = true }
   )
   local cursor_line = vim.fn.line(".") - 1
+  local buffer_id = vim.api.nvim_get_current_buf()
 
   return vim.tbl_map(function(extmark)
     if extmark[4].virt_lines ~= nil then
-      return virt_lines_extmark(extmark, dims)
+      return virt_lines_extmark(extmark, dims, buffer_id)
     else
-      return inline_extmark(extmark, dims, cursor_line)
+      return inline_extmark(extmark, dims, buffer_id, cursor_line)
     end
   end, extmarks)
 end
@@ -349,7 +276,7 @@ local function lookup_or_generate_blob(extmark)
       return nil
     end
 
-    schedule_generate_blob(extmark, path)
+    blob_cache.generate_blob(path, extmark)
     return nil
   end
 
@@ -367,8 +294,7 @@ function window_drawing.extmarks_needing_update(force)
   local window_cache = vim.w.vim_image_window_cache
   local new_dims = get_windims()
 
-  -- Try getting the visible extmarks, since the cache seems valid
-  local extmarks = vim.tbl_values(
+  local visible_extmarks = vim.tbl_values(
     window_drawing.get_visible_extmarks(new_dims)
   )
 
@@ -381,9 +307,9 @@ function window_drawing.extmarks_needing_update(force)
   end
 
   local need_clear = force
-    or #extmarks > 0 and not vim.deep_equal(new_dims, window_cache) -- Window has moved
+    or #visible_extmarks > 0 and not vim.deep_equal(new_dims, window_cache) -- Window has moved
 
-  return extmarks, need_clear
+  return visible_extmarks, need_clear
 end
 
 
@@ -398,15 +324,12 @@ function window_drawing.draw_blobs(extmarks)
   end
 
   local blobs = vim.tbl_map(
-    function(extmark)
-      ---@cast extmark wrapped_extmark
-      return lookup_or_generate_blob(extmark)
-    end,
+    lookup_or_generate_blob,
     extmarks
   )
 
   if window_drawing.enabled then
-    fire_pre_draw(extmarks)
+    blob_cache.fire_pre_draw(extmarks)
     sixel_raw.draw_sixels(blobs)
   end
 end

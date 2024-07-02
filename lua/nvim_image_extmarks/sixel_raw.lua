@@ -15,6 +15,7 @@ local ffi = require "ffi"
 ---@field height integer
 ---@field crop_row_start integer
 ---@field crop_row_end integer
+---@field buffer_id integer
 ---@field details extmark_details
 ---@field screen_position [integer, integer]
 

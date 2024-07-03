@@ -66,9 +66,21 @@ sixel_extmarks.create(
   {path}: string
 ) -> integer
 
-        Create a new image extmark which stretches from (0-indexed) row
-        {start_row} to row {end_row} of the buffer and has content
+        Create a new image extmark which stretches from (0-indexed) line
+        {start_row} to line {end_row} of the buffer and has content
         from the file at {path}.
+
+
+                                                        *sixel_extmarks.create_virtual*
+sixel_extmarks.create_virtual(
+  {start_row}: integer,
+  {height}: integer,
+  {path}: string
+) -> integer
+
+        Create a new "virtual" image extmark on (0-indexed) line {start_row}
+        of the buffer which is {height} rows tall and has content from the
+        file at {path}.
 
 
                                                         *sixel_extmarks.get*
@@ -84,9 +96,14 @@ sixel_extmarks.get(
         The return value is a table with the following the structure:
 
             id:         An integer, signifying the id of the extmark.
+            type:       "inline" if the extmark was created with |sixel_extmarks.create|.
+                        "virtual" if the extmark was created with |sixel_extmarks.create_virtual|.
             start_row:  An integer; the row that the extmark starts on.
-            end_row:    An integer; the row that the extmark ends on.
-            path:       A string, which is a path.
+            end_row?:   An integer; the row that the extmark ends on.
+                        Unset unless the extmark has type "inline".
+            height?:    An integer; the height of the extmark in rows.
+                        Unset unless the extmark has type "virtual".
+            path:       A string, which is a path to the content.
 
 
                                                         *sixel_extmarks.get_by_id*

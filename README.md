@@ -90,9 +90,22 @@ Lua Functions
   path: string
 ) -> integer`
 
-Create a new image extmark which stretches from (0-indexed) row
-`start_row` to row `end_row` of the buffer and has content
+Create a new image extmark which stretches from (0-indexed) line
+`start_row` to line `end_row` of the buffer and has content
 from the file at `path`.
+
+
+### sixel\_extmarks.create\_virtual
+
+`sixel_extmarks.create_virtual(
+  {start_row}: integer,
+  {height}: integer,
+  {path}: string
+) -> integer`
+
+Create a new "virtual" image extmark on (0-indexed) line `start_row`
+of the buffer which is `height` rows tall and has content from the
+file at `path`.
 
 
 ### sixel\_extmarks.get
@@ -108,12 +121,14 @@ To get all extmarks, set `start_row` to 0 and `end_row` to -1.
 
 The return value is a list of tables with the following structure:
 
-| Field       | Type       | Description                                     |
-|-------------|------------|-------------------------------------------------|
-|`id`         | integer    | The id of the extmark                           |
-|`start_row`  | integer    | The (0-indexed) row that the extmark starts on  |
-|`end_row`    | integer    | The (0-indexed) row that the extmark ends on    |
-|`path`       | string     | A path to the current content                   |
+| Field       | Type    | Description                                                                                                   |
+|-------------|---------|---------------------------------------------------------------------------------------------------------------|
+| `id`        | integer | The id of the extmark                                                                                         |
+| `start_row` | integer | The (0-indexed) line that the extmark starts on                                                               |
+| `type`      | string  | "inline" if the extmark was created with `create`. "virtual" if the extmark was created with `create_virtual` |
+| `end_row`   | integer | The (0-indexed) line that the extmark ends on. Unset unless `type` is "inline".                               |
+| `height`    | integer | The height of the extmark, in rows. Unset unless `type` is "virtual".                                         |
+| `path`      | string  | A path to the current content                                                                                 |
 
 
 ### sixel\_extmarks.get\_by\_id

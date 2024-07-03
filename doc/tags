@@ -18,6 +18,7 @@ sixel_extmarks.change_content	nvim_image_extmarks.txt	/*sixel_extmarks.change_co
 sixel_extmarks.clear_cache	nvim_image_extmarks.txt	/*sixel_extmarks.clear_cache*
 sixel_extmarks.clear_screen	nvim_image_extmarks.txt	/*sixel_extmarks.clear_screen*
 sixel_extmarks.create	nvim_image_extmarks.txt	/*sixel_extmarks.create*
+sixel_extmarks.create_virtual	nvim_image_extmarks.txt	/*sixel_extmarks.create_virtual*
 sixel_extmarks.disable_drawing	nvim_image_extmarks.txt	/*sixel_extmarks.disable_drawing*
 sixel_extmarks.dump_blob_cache	nvim_image_extmarks.txt	/*sixel_extmarks.dump_blob_cache*
 sixel_extmarks.enable_drawing	nvim_image_extmarks.txt	/*sixel_extmarks.enable_drawing*

@@ -171,7 +171,9 @@ function blobber.store_and_draw_blob(extmark, blob)
     or path == nil
     or blob == ""
   then
-    blobber.running_cache[path][index] = nil
+    pcall(function()
+      blobber.running_cache[path][index] = nil
+    end)
     return
   end
 
@@ -204,12 +206,16 @@ end
 ---@param extmark wrapped_extmark
 ---@param error_ string
 function blobber.update_errors(extmark, error_)
-  if error_ == "" then return end
-
   local index = extmark_to_cache_id(extmark)
   local path = extmark.path
-
   local locations = blobber.running_cache[path][index]
+
+  if error_ == "" then
+    pcall(function()
+      blobber.error_cache[path][index] = nil
+    end)
+    return
+  end
 
   -- Find out how many failures we had
   local max_retry_number = 0
@@ -229,22 +235,10 @@ function blobber.update_errors(extmark, error_)
     return
   end
 
-  -- Too many errors occurred
-  locations = {}
-
-  for _, location in ipairs(blobber.running_cache[path][index]) do
-    table.insert(locations, location)
-  end
-
-  pcall(function()
-    for _, location in ipairs(blobber.error_cache[path][index]) do
-      table.insert(locations, location)
-    end
-  end)
-
+  -- Too many errors occurred.
   -- Set errors on the extmarks that were awaiting being drawn
   vim.defer_fn(function()
-    for _, location in ipairs(locations) do
+    for _, location in ipairs(blobber.error_cache[path][index]) do
       vim.api.nvim_buf_call(location.buffer_id, function()
         interface.set_extmark_error(
           location.extmark_id,
@@ -253,6 +247,7 @@ function blobber.update_errors(extmark, error_)
       end)
     end
 
+    blobber.error_cache[path][index] = nil
     vim.notify("ImageMagick failure occurred: " .. error_)
   end, 0)
 end
@@ -273,6 +268,11 @@ function blobber.try_generate_blob(extmark)
   if blobber.running_cache[extmark.path] == nil then
     blobber.running_cache[extmark.path] = {}
   end
+
+  if blobber.error_cache[extmark.path] == nil then
+    blobber.error_cache[extmark.path] = {}
+  end
+
   if blobber.running_cache[extmark.path][index] ~= nil then
     -- Blob is being generated, just remember to draw it later
     table.insert(
@@ -280,6 +280,9 @@ function blobber.try_generate_blob(extmark)
       as_callback_details(extmark)
     )
     return
+  end
+  if blobber.error_cache[extmark.path][index] == nil then
+    blobber.error_cache[extmark.path][index] = {}
   end
 
   blobber.blobify(

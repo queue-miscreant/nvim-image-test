@@ -7,7 +7,9 @@
 ---@class image_extmark
 ---@field id integer
 ---@field start_row integer
----@field end_row integer
+---@field end_row? integer
+---@field height? integer
+---@field type "inline"|"virtual"
 ---@field path string|nil
 ---@field error string|nil
 
@@ -145,7 +147,7 @@ end
 
 -- Convert extmark from nvim_buf_get_extmark{_by_id,s} to idiomatic form
 --
----@param extmark [integer, integer, integer, {end_row: integer}]|nil
+---@param extmark [integer, integer, integer, {end_row?: integer, virt_lines?: string[][][] }]|nil
 ---@return image_extmark|nil
 local function convert_extmark(extmark)
   if extmark == nil then return nil end
@@ -155,10 +157,22 @@ local function convert_extmark(extmark)
       vim.b.image_extmark_to_path[tostring(extmark[1])],
       vim.b.image_extmark_to_error[tostring(extmark[1])]
   end)
+
+  local type = "inline"
+  local end_row = extmark[4].end_row
+  local height = nil
+  if extmark[4].virt_lines ~= nil then
+    type = "virtual"
+    end_row = nil
+    height = #(extmark[4].virt_lines)
+  end
+
   return {
     id = extmark[1],
     start_row = extmark[2],
-    end_row = extmark[4].end_row,
+    end_row = end_row,
+    height = height,
+    type = type,
     path = content,
     error = errors
   }

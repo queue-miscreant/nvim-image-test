@@ -23,6 +23,47 @@ assert(
 sixel_extmarks = {}
 
 
+---@param lhs string
+---@param ignores string[]
+local function bind_normal_redraw(lhs, ignores)
+  if vim.tbl_contains(ignores, lhs) then
+    return
+  end
+
+  vim.keymap.set(
+    "n",
+    lhs,
+    function()
+      vim.fn.execute("normal! " .. lhs)
+      sixel_extmarks.redraw()
+    end,
+    { buffer = true }
+  )
+end
+
+---@param ignores string[]
+local function bind_fold_keys(ignores)
+  bind_normal_redraw("zf", ignores) -- Create
+  bind_normal_redraw("zF", ignores)
+  bind_normal_redraw("zd", ignores) -- Delete
+  bind_normal_redraw("zD", ignores)
+  bind_normal_redraw("zE", ignores) -- Eliminate
+  bind_normal_redraw("zo", ignores) -- Open
+  bind_normal_redraw("zO", ignores)
+  bind_normal_redraw("zc", ignores) -- Close
+  bind_normal_redraw("zC", ignores)
+  bind_normal_redraw("za", ignores) -- Toggle
+  bind_normal_redraw("zA", ignores)
+  bind_normal_redraw("zv", ignores) -- View
+  bind_normal_redraw("zx", ignores) -- Update
+  bind_normal_redraw("zX", ignores)
+  bind_normal_redraw("zm", ignores) -- Increase
+  bind_normal_redraw("zM", ignores)
+  bind_normal_redraw("zr", ignores) -- Reduce
+  bind_normal_redraw("zR", ignores)
+end
+
+
 -- Add autocommands which depend on buffer contents and window positions
 --
 local function bind_local_autocmds()
@@ -56,6 +97,19 @@ local function bind_local_autocmds()
       sixel_raw.enable_drawing()
     end
   })
+
+  -- Rebind fold keys
+  local ignore_fold_remaps = vim.g.image_extmarks_ignore_fold_remaps
+  if type(ignore_fold_remaps) == "table" then
+    bind_fold_keys(ignore_fold_remaps)
+  elseif
+    ignore_fold_remaps == 0
+    or ignore_fold_remaps == nil
+    or ignore_fold_remaps == false
+  then
+    bind_fold_keys({})
+  end
+
   vim.b.bound_autocmds = true
 end
 

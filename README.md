@@ -268,6 +268,17 @@ disabled when entering insert mode and a redraw is invoked upon exiting insert
 mode.
 
 
+### g:image\_extmarks\_disable\_fold\_remaps
+
+Disables remapping keys which interact with folds to also force images to redraw.
+This can be a boolean (i.e., 0 or 1) or a list.
+
+If a truthy boolean, no remaps will take place.
+
+If a list, then the entries will be interpreted as maps (such as "zf") to
+_not_ remap.
+
+
 Autocmds
 --------
 

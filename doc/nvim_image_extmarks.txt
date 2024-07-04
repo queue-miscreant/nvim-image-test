@@ -241,6 +241,18 @@ g:image_extmarks_slow_insert                            *g:image_extmarks_slow_i
         redraw is invoked upon exiting insert mode.
 
 
+g:image_extmarks_disable_fold_remaps                    *g:image_extmarks_disable_fold_remaps*
+
+        Disables remapping keys which interact with folds to also force
+        images to redraw.
+        This can be a boolean (i.e., 0 or 1) or a list.
+
+        If a truthy boolean, no remaps will take place.
+
+        If a list, then the entries will be interpreted as maps (such as "zf") to
+        NOT remap.
+
+
 --------------------------------------------------------------------------------
 AUTOCMDS                                                *nvim-sixel-extmarks-autocmds*
                                                         *ImageExtmarks*
@@ -248,14 +260,16 @@ AUTOCMDS                                                *nvim-sixel-extmarks-aut
         |autocmd|s which are used by the plugin live under the group
         `ImageExtmarks`. These include:
 
-        - |TabClosed|, |TextChanged|, |TextChangedI|, |CursorMoved|
+        - |TextChanged|, |TextChangedI|, |CursorMoved| (Buffer-local)
+            - Attempt to redraw, if necessary
+        - |InsertEnter|, |InsertLeave| (Buffer-local)
+            - See |g:image_extmarks_slow_insert|
+        - |TabClosed|
             - Attempt to redraw, if necessary
         - |VimEnter|, |VimResized|, |TabEnter|
             - Force redraw
         - |TabLeave|, |ExitPre|
             - Clear the screen of all sixel images
-        - |InsertEnter|, |InsertLeave|
-            - See |g:image_extmarks_slow_insert|
         
         These attempt to replicate the feel of normal text extmarks without
         extra configuration.
@@ -272,20 +286,27 @@ EVENTS                                                  *nvim-sixel-extmarks-eve
 --------------------------------------------------------------------------------
 FOLDING                                                 *nvim-sixel-extmarks-folding*
 
-The plugin tends to respect folds in two ways:
+        The plugin tends to respect folds in two ways:
 
-- If an extmark intersects with a fold, then the image will not be drawn
-- If a fold is completely contained by an extmark, the image will be resized
-  to the folded height
+        - If an extmark intersects with a fold, then the image is not drawn
+        - If a fold is completely contained by an extmark, the image will be
+          resized to the folded height
 
-However, opening and closing folds will _not_ automatically trigger a redraw.
-Unfortunately, this is a Neovim limitation -- folding commands and keybinds do
-not trigger any autocmds (not even |WinScrolled|).
+        However, opening and closing folds will NOT automatically trigger
+        a redraw. Unfortunately, this is a Neovim limitation -- folding
+        commands and keybinds do not trigger any autocmds (even |WinScrolled|).
+
+        To get around this, the default commands which interact with folding
+        (those which start with z) are remapped to perform their normal action
+        AND call the redraw function. These maps are buffer-local and are added
+        along with the buffer-local autocmds above.
+        See |g:image_extmarks_disable_fold_remaps| for controlling this.
 
                                                         *nvim-sixel-extmarks-Ex-command*
 
-Similarly, there is no way to detect when the terminal is scrolled with an
-Ex command, which can cause phantom image artifacts to be remain.
+        Similarly to folds, there is no way to detect when the terminal is
+        scrolled with an Ex command, which can cause phantom image artifacts
+        to be remain. This extends to |fold|, |foldopen|, ...
 
 
 ================================================================================

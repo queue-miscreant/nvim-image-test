@@ -158,11 +158,18 @@ cache applies here as well.
 
 ### sixel\_extmarks.move
 
-`sixel_extmarks.move(id: integer, start_row: integer, end_row: integer)`
+`sixel_extmarks.move(id: integer, start_row: integer, end_row?: integer)`
 
-Move the extmark identified by `id` so that the image stretches
-starting at row `start_row` of the buffer and ends at `end_row`.
+Move the extmark identified by `id`.
+
+If the extmark was created with `sixel_extmarks.create`, the image will
+stretch from line `start_row` to line `end_row`.
 Be aware that this can resize the image.
+
+If the extmark was created with `sixel_extmarks.create_virtual`,
+the image will be moved to the line `start_row` and `end_row`
+can be omitted.
+If given, `end_row` is the new height of the image in lines.
 
 
 ### sixel\_extmarks.change\_content

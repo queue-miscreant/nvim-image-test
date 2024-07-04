@@ -169,7 +169,7 @@ end
 --
 ---@param id integer
 ---@param start_row integer
----@param end_row integer
+---@param end_row? integer
 function sixel_extmarks.move(id, start_row, end_row)
   local ret = interface.move_extmark(id, start_row, end_row)
   sixel_extmarks.redraw()

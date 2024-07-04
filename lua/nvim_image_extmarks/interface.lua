@@ -241,22 +241,35 @@ end
 
 ---@param id integer
 ---@param start_row integer
----@param end_row integer
+---@param end_row? integer
 function interface.move_extmark(id, start_row, end_row)
   local extmark = vim.api.nvim_buf_get_extmark_by_id(
     0,
     interface.namespace,
     id,
-    {}
+    { details = true }
   )
-  if extmark == nil then return end
+  if #extmark == 0 then return end
+
+  local settings = { id = id, end_row = end_row }
+  if extmark[4].virt_lines ~= nil then
+    settings.end_row = nil
+
+    local virt_lines = {}
+    if end_row ~= nil then
+      for _ = 1, end_row do
+        table.insert(virt_lines, {{"", ""}})
+      end
+      settings.virt_lines = virt_lines
+    end
+  end
 
   vim.api.nvim_buf_set_extmark(
     0,
     interface.namespace,
     start_row,
     0,
-    { id = id, end_row = end_row }
+    settings
   )
 end
 
@@ -273,7 +286,7 @@ function interface.change_extmark_content(id, path)
     id,
     {}
   )
-  if extmark == nil or map[tostring(id)] == nil then return end
+  if #extmark == 0 or map[tostring(id)] == nil then return end
 
   if not set_path_dict(id, path) then
     interface.set_extmark_error(

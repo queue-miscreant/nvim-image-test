@@ -57,17 +57,22 @@ end
 ---@return [integer, integer]
 local function window_to_terminal(start_row, windims, additional_row_offset)
   -- default row, for things at the very top of the screen
-  local row = 1
+  local row = windims.winrow
+  local row_offset = 0
   if start_row >= windims.topline then
-    local row_offset = vim.api.nvim_win_text_height(
+    row_offset = vim.api.nvim_win_text_height(
       0,
       { start_row = windims.topline, end_row = start_row }
     ).all
-    row = windims.winrow + windims.topfill + row_offset + (additional_row_offset or 0)
   end
-  local column = windims.wincol + windims.textoff
 
-  return { row, column }
+  return {
+    row + windims.topfill  -- Virtual text lines
+      + row_offset  -- Text height from the top of the window
+      + (additional_row_offset or 0)  -- Virtual/inline offset
+      - (vim.fn.foldclosed(windims.topline) ~= -1 and 1 or 0),  -- Correction for when a fold is at the top of the screen
+    windims.wincol + windims.textoff
+  }
 end
 
 
@@ -121,7 +126,10 @@ local function inline_extmark(extmark, windims, buffer_id, cursor_line)
     details = extmark[4],
     path = vim.b.image_extmark_to_path[tostring(extmark[1])],
     error = vim.b.image_extmark_to_error[tostring(extmark[1])],
-    screen_position = window_to_terminal(start_row + crop_row_start, windims)
+    screen_position = window_to_terminal(
+      start_row + crop_row_start,
+      windims
+    )
   }
 end
 
@@ -138,22 +146,24 @@ local function virt_lines_extmark(extmark, windims, buffer_id)
 
   local crop_row_start = 0
   local crop_row_end = 0
+  local draw_offset = 1
 
   -- Not on screen
   if start_row + 1 < windims.topline - 1 then
     return nil
   elseif start_row + 1 == windims.topline - 1 then
     -- No filler lines from this
-    if windims.topfill == 0 then
+    if windims.topfill == 0 or windims.topfill == 1 then
       return nil
     end
 
     -- In very rare circumstances (multiple extmarks on the same line?),
     -- this won't work, but let's not worry about that
     crop_row_start = height - windims.topfill
+    draw_offset = -windims.topfill
 
   -- Extmark at the bottom of the screen
-  elseif start_row + 1 == windims.botline then
+  elseif start_row == windims.botline - 1 then
     -- Calculate the lines missing from the bottom
     local text_height_params = {
       start_row = windims.topline,
@@ -170,7 +180,7 @@ local function virt_lines_extmark(extmark, windims, buffer_id)
 
     crop_row_end = overdraw + windims.topfill - windims.height
   -- Not on screen
-  elseif start_row + 1 > windims.botline then
+  elseif start_row > windims.botline - 1 then
     return nil
   end
 
@@ -198,7 +208,11 @@ local function virt_lines_extmark(extmark, windims, buffer_id)
     details = extmark[4],
     path = vim.b.image_extmark_to_path[tostring(extmark[1])],
     error = vim.b.image_extmark_to_error[tostring(extmark[1])],
-    screen_position = window_to_terminal(start_row + crop_row_start, windims, 1)
+    screen_position = window_to_terminal(
+      start_row,
+      windims,
+      draw_offset
+    )
   }
 end
 

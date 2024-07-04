@@ -271,6 +271,7 @@ function sixel_extmarks.redraw(force)
     sixel_raw.get_pixel_height()
   end
 
+  blobber.clear_running()
   local windows = vim.api.nvim_tabpage_list_wins(0)
 
   local previous_extmarks = vim.t.previous_extmarks

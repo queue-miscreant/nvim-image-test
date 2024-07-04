@@ -376,8 +376,6 @@ end
 
 ---@param extmarks wrapped_extmark[]
 function blobber.draw(extmarks)
-  blobber.clear_running()
-
   local blobs = vim.tbl_map(
     blobber.lookup_or_generate_blob,
     extmarks

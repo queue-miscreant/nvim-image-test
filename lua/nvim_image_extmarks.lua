@@ -34,8 +34,13 @@ local function bind_normal_redraw(lhs, ignores)
     "n",
     lhs,
     function()
-      vim.fn.execute("normal! " .. lhs)
-      sixel_extmarks.redraw()
+      local successful, str = pcall(function()
+        vim.cmd("normal! " .. lhs)
+      end)
+      if not successful and str ~= nil then
+        vim.notify(str:sub(("Vim(normal):"):len() + 1), vim.log.levels.ERROR)
+      end
+      sixel_extmarks.redraw(true)
     end,
     { buffer = true }
   )
@@ -282,6 +287,8 @@ function sixel_extmarks.redraw(force)
   local need_clear = false
   local new_extmarks = {}
   local new_count = 0
+
+  -- TODO: lazy drawing needs to accumulate!
 
   ---@type wrapped_extmark[]
   local draw_accum = {}

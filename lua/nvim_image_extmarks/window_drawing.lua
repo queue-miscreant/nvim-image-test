@@ -178,7 +178,11 @@ local function virt_lines_extmark(extmark, windims, buffer_id)
       text_height_params
     ).all
 
-    crop_row_end = overdraw + windims.topfill - windims.height
+    crop_row_end = overdraw + windims.topfill - windims.height + 1
+    -- No filler lines from this
+    if crop_row_end >= height - 1 then
+      return nil
+    end
   -- Not on screen
   elseif start_row > windims.botline - 1 then
     return nil

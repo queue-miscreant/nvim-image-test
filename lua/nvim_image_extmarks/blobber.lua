@@ -248,7 +248,7 @@ function blobber.update_errors(extmark, error_)
     end
 
     blobber.error_cache[path][index] = nil
-    vim.notify("ImageMagick failure occurred: " .. error_)
+    vim.notify("ImageMagick failure occurred: " .. error_, vim.log.levels.WARN)
   end, 0)
 end
 

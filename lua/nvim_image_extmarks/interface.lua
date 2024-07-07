@@ -252,7 +252,7 @@ function interface.move_extmark(id, start_row, end_row)
   if #extmark == 0 then return end
 
   local settings = { id = id, end_row = end_row }
-  if extmark[4].virt_lines ~= nil then
+  if extmark[3].virt_lines ~= nil then
     settings.end_row = nil
 
     local virt_lines = {}

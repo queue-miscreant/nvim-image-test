@@ -4,10 +4,9 @@
 
 local interface = require "nvim_image_extmarks.interface"
 local sixel_raw = require "nvim_image_extmarks.sixel_raw"
-local window_drawing = require "nvim_image_extmarks.window_drawing"
 local blobber = require "nvim_image_extmarks.blobber"
+local redraw = require "nvim_image_extmarks.redraw"
 
-local extmark_timer = nil
 assert(
   (
     type(vim.g.image_extmarks_buffer_ms) == "number" or
@@ -271,94 +270,7 @@ end
 --
 ---@param force? boolean Force redraw
 function sixel_extmarks.redraw(force)
-  -- Update the pixel height if this is a forced redraw
-  if force then
-    sixel_raw.get_pixel_height()
-  end
-
-  blobber.clear_running()
-  local windows = vim.api.nvim_tabpage_list_wins(0)
-
-  local previous_extmarks = vim.t.previous_extmarks
-  if previous_extmarks == nil then
-    previous_extmarks = {}
-  end
-
-  local need_clear = false
-  local new_extmarks = {}
-  local new_count = 0
-
-  -- TODO: lazy drawing needs to accumulate!
-
-  ---@type wrapped_extmark[]
-  local draw_accum = {}
-  ---@type wrapped_extmark[]
-  local lazy_draw_accum = {}
-
-  for _, window in pairs(windows) do
-    vim.api.nvim_win_call(window, function()
-      local extmarks_to_draw, need_clear_window = window_drawing.extmarks_needing_update(
-        force or false
-      )
-      need_clear = need_clear or need_clear_window
-
-      for _, extmark in pairs(extmarks_to_draw) do
-        local cache_entry = window_drawing.extmark_cache_entry(window, extmark)
-        new_extmarks[cache_entry] = true
-        table.insert(draw_accum, extmark)
-
-        -- Add to the lazy list if we didn't draw it previously
-        if previous_extmarks[cache_entry] == nil then
-          table.insert(lazy_draw_accum, extmark)
-          new_count = new_count + 1
-        end
-      end
-    end)
-  end
-
-  for cache_entry, _ in pairs(previous_extmarks) do
-    -- If we're not drawing an extmark that was drawn previously, clear the screen
-    need_clear = need_clear or new_extmarks[cache_entry] == nil
-  end
-
-  local timer = vim.g.image_extmarks_buffer_ms or 0
-  if need_clear then
-    sixel_raw.clear_screen()
-  -- Nothing to draw, and not about to draw
-  elseif new_count == 0 then
-    return
-  elseif extmark_timer == nil then
-    timer = 0
-  end
-
-  -- Update the drawn extmarks now, for future redraws
-  vim.t.previous_extmarks = new_extmarks
-
-  -- "Renew" the timer by cancelling it first
-  if extmark_timer ~= nil then
-    pcall(function()
-      extmark_timer:stop()
-      extmark_timer:close()
-    end)
-  end
-  extmark_timer = vim.loop.new_timer()
-
-  extmark_timer:start(
-    timer,
-    0,
-    vim.schedule_wrap(function()
-      pcall(function()
-        extmark_timer:stop()
-        extmark_timer:close()
-      end)
-
-      if sixel_raw.screen_cleared then
-        blobber.draw(draw_accum)
-      else
-        blobber.draw(lazy_draw_accum)
-      end
-    end)
-  )
+  redraw(force)
 end
 
 

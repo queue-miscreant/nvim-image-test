@@ -23,12 +23,7 @@ sixel_extmarks = {}
 
 
 ---@param lhs string
----@param ignores string[]
-local function bind_normal_redraw(lhs, ignores)
-  if vim.tbl_contains(ignores, lhs) then
-    return
-  end
-
+local function bind_normal_redraw(lhs)
   vim.keymap.set(
     "n",
     lhs,
@@ -47,31 +42,39 @@ end
 
 ---@param ignores string[]
 local function bind_fold_keys(ignores)
-  bind_normal_redraw("zf", ignores) -- Create
-  bind_normal_redraw("zF", ignores)
-  bind_normal_redraw("zd", ignores) -- Delete
-  bind_normal_redraw("zD", ignores)
-  bind_normal_redraw("zE", ignores) -- Eliminate
-  bind_normal_redraw("zo", ignores) -- Open
-  bind_normal_redraw("zO", ignores)
-  bind_normal_redraw("zc", ignores) -- Close
-  bind_normal_redraw("zC", ignores)
-  bind_normal_redraw("za", ignores) -- Toggle
-  bind_normal_redraw("zA", ignores)
-  bind_normal_redraw("zv", ignores) -- View
-  bind_normal_redraw("zx", ignores) -- Update
-  bind_normal_redraw("zX", ignores)
-  bind_normal_redraw("zm", ignores) -- Increase
-  bind_normal_redraw("zM", ignores)
-  bind_normal_redraw("zr", ignores) -- Reduce
-  bind_normal_redraw("zR", ignores)
+  for _, lhs in pairs{
+    "zf", -- Create
+    "zF",
+    "zd", -- Delete
+    "zD",
+    "zE", -- Eliminate
+    "zo", -- Open
+    "zO",
+    "zc", -- Close
+    "zC",
+    "za", -- Toggle
+    "zA",
+    "zv", -- View
+    "zx", -- Update
+    "zX",
+    "zm", -- Increase
+    "zM",
+    "zr", -- Reduce
+    "zR",
+  }
+  do
+    if vim.tbl_contains(ignores, lhs) then return end
+    bind_normal_redraw(lhs)
+  end
+
 end
 
 
 -- Add autocommands which depend on buffer contents and window positions
 --
 local function bind_local_autocmds()
-  vim.api.nvim_create_autocmd({ "CursorMoved", "TextChanged", "TextChangedI" }, {
+  -- TODO: check if winscrolled is triggered on paste
+  vim.api.nvim_create_autocmd({ "TextChanged", "TextChangedI" }, {
     group = "ImageExtmarks",
     buffer = 0,
     callback = function() sixel_extmarks.redraw() end

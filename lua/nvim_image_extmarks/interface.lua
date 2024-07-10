@@ -301,6 +301,7 @@ end
 ---@param error_text string|nil
 ---@param remember? boolean
 function interface.set_extmark_error(id, error_text, remember)
+  print("HERE 1")
   if remember or remember == nil then
     if vim.b.image_extmark_to_error == nil then
       vim.b.image_extmark_to_error = vim.empty_dict()
@@ -310,18 +311,32 @@ function interface.set_extmark_error(id, error_text, remember)
   end
 
   local data = interface.get_image_extmark_by_id(id)
+  print("HERE 2")
   if data == nil then return end
+
+  local error_display = { { error_text, "ErrorMsg" } }
+  local details = {
+    id = id,
+  }
+  if data.type == "inline" then
+    details["end_row"] = data.end_row
+    details["virt_text"] = error_display
+  else
+    local virt_lines = { error_display }
+    for _ = 1, data.height - 1 do
+      table.insert(virt_lines, {{"", ""}})
+    end
+    details["virt_lines"] = virt_lines
+
+    print("HERE")
+  end
 
   vim.api.nvim_buf_set_extmark(
     0,
     interface.namespace,
     data.start_row,
     0,
-    {
-      id = id,
-      end_row = data.end_row,
-      virt_text = { { error_text, "ErrorMsg" } },
-    }
+    details
   )
 end
 

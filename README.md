@@ -308,7 +308,8 @@ before drawing sixel blobs.
 TODOs
 -----
 
+- Configurable limit for maximum number of ImageMagick subprocesses
 - Images crop to window width
+- Crop thresholds
 - Hide text behind extmark with highlight
     - This is more difficult than it seems. 256-color terminals use `gui` highlights, which don't support `start=`/`stop=`
-- Crop thresholds

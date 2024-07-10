@@ -53,7 +53,7 @@ local blobber = {
   running_cache = {},
   ---@type {[blob_path]: {[cache_id]: (nil | callback_details[]) }}
   error_cache = {},
-  max_retry_count = 5
+  max_retry_number = 5
 }
 
 
@@ -81,6 +81,16 @@ local function fire_pre_draw(extmarks)
       group = "ImageExtmarks#pre_draw",
     })
   end
+end
+
+
+---@param extmark wrapped_extmark
+---@return cache_id
+local function extmark_to_running_cache_id(extmark)
+  return ("%d,%d"):format(
+    extmark.buffer_id,
+    extmark.details.id
+  )
 end
 
 
@@ -169,11 +179,12 @@ function blobber.store_and_draw_blob(extmark, blob)
   if
     locations == nil
     or path == nil
-    or blob == ""
   then
     pcall(function()
       blobber.running_cache[path][index] = nil
     end)
+    return
+  elseif blob == "" then
     return
   end
 
@@ -218,19 +229,20 @@ function blobber.update_errors(extmark, error_)
   end
 
   -- Find out how many failures we had
-  local max_retry_number = 0
+  local max_retry_count = 0
   for _, location in ipairs(locations) do
-    max_retry_number = math.max(max_retry_number, location.retry_number or 0)
+    max_retry_count = math.max(max_retry_count, location.retry_number or 0)
   end
 
-  if max_retry_number <= blobber.max_retry_count then
-    blobber.try_generate_blob(extmark)
-
-    -- Add the other locations
-    blobber.running_cache[path][index] = locations
+  if max_retry_count <= blobber.max_retry_number then
     for _, location in ipairs(locations) do
       location.retry_number = (location.retry_number or 0) + 1
     end
+
+    -- Add the other locations
+    blobber.running_cache[path][index] = nil
+    blobber.try_generate_blob(extmark)
+    blobber.running_cache[path][index] = locations
 
     return
   end
@@ -242,7 +254,7 @@ function blobber.update_errors(extmark, error_)
       vim.api.nvim_buf_call(location.buffer_id, function()
         interface.set_extmark_error(
           location.extmark_id,
-          "Failed to convert extmark to blob!"
+          "Failed to blob content for extmark!"
         )
       end)
     end
@@ -273,16 +285,15 @@ function blobber.try_generate_blob(extmark)
     blobber.error_cache[extmark.path] = {}
   end
 
+  local details = as_callback_details(extmark)
+
   if blobber.running_cache[extmark.path][index] ~= nil then
     -- Blob is being generated, just remember to draw it later
-    table.insert(
-      blobber.running_cache[extmark.path][index],
-      as_callback_details(extmark)
-    )
+    blobber.running_cache[extmark.path][index][extmark_to_running_cache_id(extmark)] = details
     return
   end
   if blobber.error_cache[extmark.path][index] == nil then
-    blobber.error_cache[extmark.path][index] = {}
+    blobber.error_cache[extmark.path][index] = { details }
   end
 
   blobber.blobify(
@@ -291,7 +302,9 @@ function blobber.try_generate_blob(extmark)
     blobber.update_errors
   )
 
-  blobber.running_cache[extmark.path][index] = { as_callback_details(extmark) }
+  blobber.running_cache[extmark.path][index] = {
+    [extmark_to_running_cache_id(extmark)] = details
+  }
 end
 
 
@@ -376,11 +389,13 @@ end
 
 ---@param extmarks wrapped_extmark[]
 function blobber.draw(extmarks)
+  -- Asynchronous draws
   local blobs = vim.tbl_map(
     blobber.lookup_or_generate_blob,
     extmarks
   )
 
+  -- Synchronous draws
   fire_pre_draw(
     vim.tbl_map(as_callback_details, extmarks)
   )

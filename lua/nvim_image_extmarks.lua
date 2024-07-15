@@ -245,7 +245,8 @@ end
 ---@param path string The path to the file containing the new content.
 function sixel_extmarks.change_content(id, path)
   local ret = interface.change_extmark_content(id, path)
-  sixel_extmarks.redraw()
+  -- After changing content, the screen must be cleared anyway
+  sixel_extmarks.redraw(true)
 
   return ret
 end

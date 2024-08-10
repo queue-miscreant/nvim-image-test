@@ -340,27 +340,30 @@ vim.api.nvim_create_autocmd(
   }
 )
 
-vim.api.nvim_create_autocmd(
-  "WinResized",
-  {
-    group = "ImageExtmarks",
-    callback = function()
-      local total = 0
-      for _, win in pairs(vim.v.event.windows) do
-        total = total + #vim.api.nvim_buf_get_extmarks(
-          vim.api.nvim_win_get_buf(win),
-          interface.namespace,
-          0,
-          -1,
-          {}
-        )
+-- Only add WinResized if neovim supports it
+if pcall(function() vim.api.nvim_get_autocmds{ event = "WinResized" } end) then
+  vim.api.nvim_create_autocmd(
+    "WinResized",
+    {
+      group = "ImageExtmarks",
+      callback = function()
+        local total = 0
+        for _, win in pairs(vim.v.event.windows) do
+          total = total + #vim.api.nvim_buf_get_extmarks(
+            vim.api.nvim_win_get_buf(win),
+            interface.namespace,
+            0,
+            -1,
+            {}
+          )
+        end
+        if total > 0 then
+          sixel_extmarks.redraw(true)
+        end
       end
-      if total > 0 then
-        sixel_extmarks.redraw(true)
-      end
-    end
-  }
-)
+    }
+  )
+end
 
 vim.api.nvim_create_autocmd(
   {

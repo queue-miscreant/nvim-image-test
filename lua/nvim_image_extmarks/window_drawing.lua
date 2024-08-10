@@ -88,7 +88,7 @@ local function inline_extmark(extmark, windims, buffer_id, cursor_line)
   local start_row, end_row = extmark[2], extmark[4].end_row
 
   -- Not on screen
-  if end_row + 1 <= windims.topline or start_row + 1 > windims.botline then
+  if end_row == nil or end_row + 1 <= windims.topline or start_row + 1 > windims.botline then
     return nil
   end
 

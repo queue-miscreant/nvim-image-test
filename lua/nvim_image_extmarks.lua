@@ -20,7 +20,7 @@ assert(
 --
 ---@diagnostic disable-next-line
 sixel_extmarks = {}
-
+local creating_tab = false
 
 ---@param lhs string
 local function bind_normal_redraw(lhs)
@@ -153,6 +153,9 @@ end
 ---@return integer
 function sixel_extmarks.create_virtual(start_row, height, path)
   local id = interface.create_image_virtual(start_row, height, path)
+  if vim.g.image_extmarks_allow_virtual == 0 then
+    vim.notify("Virtual extmarks are only supported on nvim >=0.10", vim.log.levels.ERROR)
+  end
 
   -- Bind extmarks if we need to
   if (
@@ -384,7 +387,7 @@ vim.api.nvim_create_autocmd(
   "TabNew",
   {
     group = "ImageExtmarks",
-    callback = function() sixel_extmarks.creating_tab = true end
+    callback = function() creating_tab = true end
   }
 )
 vim.api.nvim_create_autocmd(
@@ -395,8 +398,8 @@ vim.api.nvim_create_autocmd(
   {
     group = "ImageExtmarks",
     callback = function()
-      if sixel_extmarks.creating_tab ~= nil then
-        sixel_extmarks.creating_tab = nil
+      if creating_tab then
+        creating_tab = false
         return
       end
 

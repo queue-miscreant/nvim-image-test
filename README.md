@@ -107,6 +107,8 @@ Create a new "virtual" image extmark on (0-indexed) line `start_row`
 of the buffer which is `height` rows tall and has content from the
 file at `path`.
 
+Virtual extmarks are only supported on Neovim >=0.10.
+
 
 ### sixel\_extmarks.get
 

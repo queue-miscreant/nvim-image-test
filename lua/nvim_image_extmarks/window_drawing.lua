@@ -6,6 +6,21 @@ local interface = require "nvim_image_extmarks.interface"
 
 local window_drawing = {}
 
+---@class text_height_params
+---@field start_row integer
+---@field end_row integer
+
+---@type fun(window_id: integer, y: text_height_params): { all: integer, fill: integer }
+local text_height
+if vim.api.nvim_win_text_height ~= nil then
+  text_height = vim.api.nvim_win_text_height
+else
+  -- Polyfill that can't take virtual lines into account
+  text_height = function(_, params)
+    return { all = params.end_row - params.start_row + 1, fill = 0 }
+  end
+end
+
 
 -- Format extmark parameters which influence sixel data.
 -- This is the identifier (extmark_id) along with data which can change as windows move
@@ -51,7 +66,7 @@ end
 
 -- Convert window coordinates (start_row, end_row) to terminal coordinates
 --
----@param start_row wrapped_extmark The row of the buffer to start drawing on
+---@param start_row integer The row of the buffer to start drawing on
 ---@param windims window_dimensions The current dimensions of the window
 ---@param additional_row_offset? integer An optional row offset for drawing the extmark
 ---@return [integer, integer]
@@ -60,7 +75,7 @@ local function window_to_terminal(start_row, windims, additional_row_offset)
   local row = windims.winrow
   local row_offset = 0
   if start_row >= windims.topline then
-    row_offset = vim.api.nvim_win_text_height(
+    row_offset = text_height(
       0,
       { start_row = windims.topline, end_row = start_row }
     ).all
@@ -109,7 +124,7 @@ local function inline_extmark(extmark, windims, buffer_id, cursor_line)
   end
 
   -- Adjust height by folds and virtual text
-  local height = vim.api.nvim_win_text_height(
+  local height = text_height(
     0,
     { start_row = start_row, end_row = end_row }
   ).all - 1
@@ -173,7 +188,7 @@ local function virt_lines_extmark(extmark, windims, buffer_id)
     if windims.botline == vim.fn.line("$") then
       text_height_params.end_row = nil
     end
-    local overdraw = vim.api.nvim_win_text_height(
+    local overdraw = text_height(
       0,
       text_height_params
     ).all

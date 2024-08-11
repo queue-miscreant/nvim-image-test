@@ -2,6 +2,9 @@ local sixel_raw = require "nvim_image_extmarks.sixel_raw"
 local blobber = require "nvim_image_extmarks.blobber"
 local window_drawing = require "nvim_image_extmarks.window_drawing"
 
+local loop = vim.uv
+if loop == nil then loop = vim.loop end
+
 local redraw_timer = nil
 local lazy_accumulator = {}
 
@@ -76,7 +79,7 @@ local function redraw(force)
       redraw_timer:close()
     end)
   end
-  redraw_timer = vim.loop.new_timer()
+  redraw_timer = loop.new_timer()
 
   local current_tabpage = vim.api.nvim_get_current_tabpage()
   redraw_timer:start(

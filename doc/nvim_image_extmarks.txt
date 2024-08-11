@@ -82,6 +82,8 @@ sixel_extmarks.create_virtual(
         of the buffer which is {height} rows tall and has content from the
         file at {path}.
 
+        Virtual extmarks are only supported on Neovim >=0.10.
+
 
                                                         *sixel_extmarks.get*
 sixel_extmarks.get(

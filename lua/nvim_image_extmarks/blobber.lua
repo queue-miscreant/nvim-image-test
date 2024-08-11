@@ -20,6 +20,9 @@
 local sixel_raw = require "nvim_image_extmarks.sixel_raw"
 local interface = require "nvim_image_extmarks.interface"
 
+local loop = vim.uv
+if loop == nil then loop = vim.loop end
+
 ---@class extmark_details
 ---@field id integer
 ---@field end_row? integer
@@ -134,10 +137,10 @@ function blobber.blobify(
     extmark.crop_row_start * sixel_raw.char_pixel_height
   )
 
-  local stdout = vim.loop.new_pipe()
-  local stderr = vim.loop.new_pipe()
+  local stdout = loop.new_pipe()
+  local stderr = loop.new_pipe()
   -- Run ImageMagick command
-  vim.loop.spawn("magick", {
+  loop.spawn("magick", {
     args = {
       extmark.path .. "[0]",
       "-resize",

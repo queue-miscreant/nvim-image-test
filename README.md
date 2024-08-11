@@ -21,6 +21,7 @@ Requirements
     - See [here](https://www.arewesixelyet.com/)
 - ImageMagick with support for sixel blobs
     - Run `magick -list format | grep -i sixel` to check
+    - Command name might be `convert` instead
 
 
 Installation
@@ -253,6 +254,13 @@ a table with filenames as keys and buffer ranges as values.
 Configuration
 -------------
 
+### g:image\_extmarks\_imagemagick\_command
+
+Specifies the name of the command for invoking ImageMagick.
+
+Defaults to `magick`, or to `convert` if that command doesn't exist.
+
+
 ### g:image\_extmarks\_buffer\_ms
 
 Controls the amount of delay, in milliseconds, between the screen being cleared
@@ -303,7 +311,7 @@ configuration. They can be overridden or unbound at your leisure using
 
 ### Events
 
-`User`-type `autocmd`s are fired under the `ImageExtmarks#pre_draw` immediately
+`User`-type `autocmd`s are fired under the `ImageExtmarks#pre_draw` group immediately
 before drawing sixel blobs.
 
 

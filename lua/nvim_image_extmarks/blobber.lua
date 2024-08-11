@@ -56,7 +56,7 @@ local blobber = {
   running_cache = {},
   ---@type {[blob_path]: {[cache_id]: (nil | callback_details[]) }}
   error_cache = {},
-  max_retry_number = 5
+  max_retry_number = 5,
 }
 
 
@@ -140,7 +140,7 @@ function blobber.blobify(
   local stdout = loop.new_pipe()
   local stderr = loop.new_pipe()
   -- Run ImageMagick command
-  loop.spawn("magick", {
+  loop.spawn(vim.g.image_extmarks_imagemagick_command, {
     args = {
       extmark.path .. "[0]",
       "-resize",

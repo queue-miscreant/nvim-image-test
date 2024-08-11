@@ -98,7 +98,7 @@ local function redraw(force)
       end
       lazy_accumulator = {}
       vim.api.nvim_tabpage_set_var(current_tabpage, "image_extmarks_drawn", new_extmarks)
-      vim.api.nvim_tabpage_del_var(current_tabpage, "image_extmarks_queued")
+      pcall(function() vim.api.nvim_tabpage_del_var(current_tabpage, "image_extmarks_queued") end)
     end)
   )
 end

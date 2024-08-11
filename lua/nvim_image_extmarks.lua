@@ -15,7 +15,6 @@ assert(
   "g:image_extmarks_buffer_ms must be a number"
 )
 
-
 -- Namespace for plugin functions
 --
 ---@diagnostic disable-next-line

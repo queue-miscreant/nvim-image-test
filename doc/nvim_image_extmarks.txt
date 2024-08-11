@@ -17,6 +17,9 @@ INTRODUCTION                                            *nvim-image-extmarks-int
 
         to see if your installation supports sixels.
 
+        Depending on version, ImageMagick command might be `convert` instead.
+        See also |g:image_extmarks_imagemagick_command|.
+
 
 CACHE                                                   *nvim-image-extmarks-cache*
 
@@ -225,6 +228,13 @@ sixel_extmarks.dump_blob_cache()
 
 --------------------------------------------------------------------------------
 CONFIGURATION                                           *nvim-image-extmarks-configuration*
+
+g:image_extmarks_imagemagick_command                    *g:image_extmarks_imagemagick_command*
+
+        Specifies the name of the command for invoking ImageMagick.
+
+        Defaults to `magick`, or to `convert` if that command doesn't exist.
+
 
 g:image_extmarks_buffer_ms                              *g:image_extmarks_buffer_ms*
 

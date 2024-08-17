@@ -301,10 +301,10 @@ end
 
 -- Enable drawing blobs, after having disabled them with `sixel_extmarks.disable_drawing`.
 --
----@param redraw? boolean Whether or not to redraw the screen afterward. True if not given.
-function sixel_extmarks.enable_drawing(redraw)
+---@param redraw_after? boolean Whether or not to redraw the screen afterward. True if not given.
+function sixel_extmarks.enable_drawing(redraw_after)
   sixel_raw.enable_drawing()
-  if redraw == nil or redraw then
+  if redraw_after == nil or redraw_after then
     sixel_extmarks.redraw(true)
   end
 end
@@ -374,7 +374,7 @@ vim.api.nvim_create_autocmd(
   },
   {
     group = "ImageExtmarks",
-    callback = function() sixel_extmarks.redraw(true) end
+    callback = function() redraw(true, true) end
   }
 )
 

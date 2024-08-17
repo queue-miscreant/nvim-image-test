@@ -1,19 +1,33 @@
 -- nvim_image_extmarks/sixel_raw.lua
 --
--- "Low-level" sixel functions, such as creating blobs, drawing them to the tty,
+-- Low-level terminal functions. Primarily involves drawing sixels to the tty,
 -- clearing the screen safely, and getting the character height for drawing.
 
 local ffi = require "ffi"
 
 local sixel_raw = {
+  ---@type string|nil
   tty = nil,
+  ---@type string[]|nil
+  parent_ttys = nil,
+  ---@type string|nil
+  tmux_pid = nil,
+  ---@type string|nil
+  tmux_session = nil,
+  ---@type integer
   char_pixel_height = 0,
+  ---@type boolean
   screen_cleared = true,
-  drawing_enabled = true
+  ---@type boolean
+  drawing_enabled = true,
 }
 
--- Ideally, this would be imported, but alas
-local TIOCGWINSZ = 0x5413
+-- This is the default value in Linux (and other kernels),
+-- but can also be derived from the Python installation
+local TIOCGWINSZ = vim.g.image_extmarks_TIOCGWINSZ
+if TIOCGWINSZ == nil then
+  TIOCGWINSZ =  0x5413
+end
 
 -- ioctl definition
 ffi.cdef [[
@@ -24,34 +38,127 @@ struct winsize {
   unsigned short ws_ypixel;
 };
 int ioctl(int fd, int cmd, ...);
+
+int fileno(struct FILE* stream);
 ]]
 
-
--- Perform the above ioctl operation and calculate the height of a character in pixels
+-- Get the parent terminals of the current process
 --
----@return number
-function sixel_raw.get_pixel_height()
-  local buf = ffi.new("struct winsize")
-  ffi.C.ioctl(1, TIOCGWINSZ, buf)
+---@param exclude_tty string TTY device to exclude from the returned list
+---@return string[]
+local function get_parent_terminals(exclude_tty)
+  -- Call pstree to get parent processes (and their PIDs)
+  local file = io.popen("pstree $$ -s -p -A")
+  if file == nil then return {} end
+  local pstree = file:read("l")
+  file:close()
 
-  if buf.ws_ypixel > 2 then
-    sixel_raw.char_pixel_height = math.floor(buf.ws_ypixel / buf.ws_row)
+  local tree = vim.split(pstree, "---")
+  local pids = {}
+  for _, process in ipairs(tree) do
+    local pid = process:match(".+%((%d+)%)")
+    if pid then
+      table.insert(pids, pid)
+    end
   end
-  return 28
+
+  local ptys = {}
+  local last_tty = ""
+  -- Ascend the process tree and request its TTY device
+  for i = #pids, 1, -1 do
+    file = io.popen("ps -o tty= -p " .. pids[i])
+    if file ~= nil then
+      local ps = file:read("l")
+      file:close()
+
+      if ps and ps ~= "?" then
+        ps = "/dev/" .. ps
+        if ps ~= last_tty and ps ~= exclude_tty then
+          table.insert(ptys, ps)
+          last_tty = ps
+        end
+      end
+    end
+  end
+
+  return ptys
 end
 
 
 -- Acquire the tty filename and store it for use later
-function sixel_raw.get_tty()
+-- Also acquires parent terminals, in case pixel heights of 0 are reported.
+--
+function sixel_raw.fetch_ttys()
   local proc = assert(io.popen("tty"))
   local tty_name = proc:read()
   proc:close()
 
   sixel_raw.tty = tty_name
+
+  -- Find tmux process
+  local _, _, _, tmux_pid, tmux_session = tostring(vim.env.TMUX):find("(.+),(%d+),(%d+)")
+  sixel_raw.tmux_pid = tmux_pid
+  sixel_raw.tmux_session = tmux_session
+
+  -- Option turned off
+  if vim.g.image_extmarks_parent_tty_magic == 0 then
+    return
+  end
+  -- Find parent terminals
+  sixel_raw.parent_ttys = get_parent_terminals(tty_name)
 end
 
 
--- Draw a sixel to the display
+-- Perform an ioctl operation and calculate the height of a character in pixels
+--
+---@param fd integer The file descriptor to perform the operation on
+---@return integer
+local function get_pixel_height(fd)
+  local buf = ffi.new("struct winsize")
+  ffi.C.ioctl(fd, TIOCGWINSZ, buf)
+
+  if buf.ws_ypixel > 2 then
+    return math.floor(buf.ws_ypixel / buf.ws_row)
+  end
+  return 0
+end
+
+
+-- Grab the terminal height, either naively on stdout, or by looking on parent terminals
+function sixel_raw.fetch_height()
+  if sixel_raw.tty == nil then
+    sixel_raw.fetch_ttys()
+  end
+
+  -- Get height from stdout
+  local naive = get_pixel_height(1)
+  if naive ~= 0 then
+    sixel_raw.char_pixel_height = naive
+    return
+  end
+
+  -- Option turned off
+  if sixel_raw.parent_ttys == nil then
+    return
+  end
+
+  -- Open each parent (pseudo)terminal, send ioctl
+  for _, terminal in ipairs(sixel_raw.parent_ttys) do
+    local device = io.open(terminal)
+    if device ~= nil then
+      local fd = ffi.C.fileno(device)
+      local height = get_pixel_height(fd)
+      device:close()
+      if height ~= 0 then
+        sixel_raw.char_pixel_height = height
+        return
+      end
+    end
+  end
+end
+
+
+-- Draw a sixel blob to the display
 -- Move the cursor to (row, column) (1-indexed), draw the blob, then reset the cursor position
 --
 ---@param blob string
@@ -61,7 +168,7 @@ function sixel_raw.draw_sixel(blob, winpos)
 
   pcall(function()
     if sixel_raw.tty == nil then
-      sixel_raw.get_tty()
+      sixel_raw.fetch_ttys()
     end
 
     local stdout = assert(io.open(sixel_raw.tty, "ab"))
@@ -83,7 +190,7 @@ function sixel_raw.draw_sixels(blob_ranges)
 
   pcall(function()
     if sixel_raw.tty == nil then
-      sixel_raw.get_tty()
+      sixel_raw.fetch_tty()
     end
 
     local stdout = assert(io.open(sixel_raw.tty, "ab"))
@@ -111,9 +218,8 @@ function sixel_raw.clear_screen()
   -- clear screen with :mode
   vim.cmd("mode")
   -- clear tmux with tmux detach -E "tmux attach -t (session number)"
-  local _, _, _, tmux_pid, tmux_session = tostring(vim.env.TMUX):find("(.+),(%d+),(%d+)")
-  if tmux_session ~= nil then
-    vim.fn.system(("tmux detach -E 'tmux attach -t %s'"):format(tmux_session))
+  if sixel_raw.tmux_session ~= nil then
+    vim.fn.system(("tmux detach -E 'tmux attach -t %s'"):format(sixel_raw.tmux_session))
   end
   sixel_raw.screen_cleared = true
 end

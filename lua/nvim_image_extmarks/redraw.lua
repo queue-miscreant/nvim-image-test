@@ -11,10 +11,11 @@ local lazy_accumulator = {}
 -- Draw all extmark content on the screen.
 --
 ---@param force? boolean Force redraw
-local function redraw(force)
+---@param resized? boolean Reacquire terminal height
+local function redraw(force, resized)
   -- Update the pixel height if this is a forced redraw
-  if force then
-    sixel_raw.get_pixel_height()
+  if resized then
+    sixel_raw.fetch_height()
   end
 
   local windows = vim.api.nvim_tabpage_list_wins(0)

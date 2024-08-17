@@ -47,6 +47,23 @@ TMUX                                                    *nvim-image-extmarks-tmu
             - sixel binary content, which appears as random ASCII characters
 
 
+LAYERED TERMINALS                                       *nvim-image-extmarks-ttys*
+
+        Sometimes, a process may spawn a pseudoterminal. For example, the
+        Python package `pexpect` allows you to control a child terminal from
+        Python, while also forwarding resizes from the parent to the child.
+
+        However, _this package specifically_ does not forward the pixel
+        dimensions of the terminal, and instead report as 0.
+
+        To get around this, the plugin can attempt to query the terminals of
+        the parent processes in addition to the one on standard output.
+        It does this by running `pstree` and `ps`.
+
+        This behavior can be disabled by setting
+        |g:image_extmarks_parent_tty_magic| to 0.
+
+
 --------------------------------------------------------------------------------
 COMMANDS                                                *nvim-image-extmarks-command*
 
@@ -247,7 +264,7 @@ g:image_extmarks_buffer_ms                              *g:image_extmarks_buffer
 g:image_extmarks_slow_insert                            *g:image_extmarks_slow_insert*
 
         Activates "slow" insert mode.
-        
+
         When true, instead of attempting to redraw images as-necessary in
         insert mode, drawing is disabled when entering insert mode and a
         redraw is invoked upon exiting insert mode.
@@ -265,9 +282,31 @@ g:image_extmarks_disable_fold_remaps                    *g:image_extmarks_disabl
         NOT remap.
 
 
+g:image_extmarks_parent_tty_magic                       *g:image_extmarks_parent_tty_magic*
+
+        Enables fetching character sizes from terminals of parent processes.
+        Defaults to 1 (true).
+
+
+g:image_extmarks_ioctl_magic                            *g:image_extmarks_ioctl_magic*
+
+        Enables fetching the ioctl for TIOCGWINSZ from Python. Defaults to 1
+        (true).
+
+        If disabled and |g:image_extmarks_TIOCGWINSZ| is not manually set,
+        TIOCGWINSZ will fall back to 0x5413, its value on Linux.
+
+
+g:image_extmarks_TIOCGWINSZ                             *g:image_extmarks_TIOCGWINSZ*
+
+        The number corresponding to the TIOCGWINSZ ioctl.
+        If |g:image_extmarks_ioctl_magic| is 1, then this variable is set
+        automatically. Otherwise, it can be specified by the user.
+
+
 --------------------------------------------------------------------------------
-AUTOCMDS                                                *nvim-sixel-extmarks-autocmds*
-                                                        *ImageExtmarks*
+AUTOCMDS                                                *nvim-sixel-extmarks-autocmds
+                                                        *ImageExtmarks
 
         |autocmd|s which are used by the plugin live under the group
         `ImageExtmarks`. These include:
@@ -282,7 +321,7 @@ AUTOCMDS                                                *nvim-sixel-extmarks-aut
             - Force redraw
         - |TabLeave|, |ExitPre|
             - Clear the screen of all sixel images
-        
+
         These attempt to replicate the feel of normal text extmarks without
         extra configuration.
         They can be overridden or unbound at your leisure using |autocmd|!.

@@ -17,11 +17,18 @@ markdown-formatted content like LaTeX.
 Requirements
 ------------
 
+- Neovim >= 0.7
+  - Some features require >= 0.10
 - A terminal emulator that can display sixels
-    - See [here](https://www.arewesixelyet.com/)
+  - See [here](https://www.arewesixelyet.com/)
+- UNIX-like utilities
+  - `tty` command, which outputs the path to the current terminal device
+  - `fileno` and `ioctl` system calls
+  - (Optional) Python installation with `termios`
+  - (Optional) `ps`, `pstree`, and terminal devices located under `/dev`
 - ImageMagick with support for sixel blobs
-    - Run `magick -list format | grep -i sixel` to check
-    - Command name might be `convert` instead
+  - Run `magick -list format | grep -i sixel` to check
+  - Command name might be `convert` instead
 
 
 Installation
@@ -36,8 +43,8 @@ Plugin 'queue-miscreant/nvim_image_extmarks'
 Make sure the file is sourced and run `:PluginInstall`.
 
 
-Limitations
------------
+Limitations and Workarounds
+---------------------------
 
 ### Folding
 
@@ -69,6 +76,22 @@ With enough delay, this produces visible artifacts, including:
 
     - boxes of "+" characters where the images would be displayed
     - sixel binary content, which appears as random ASCII characters
+
+
+### Layered Terminals
+
+Sometimes, a process may spawn a pseudoterminal. For example, the Python package
+[pexpect](https://github.com/pexpect/pexpect) allows you to control a child terminal from
+Python, while also forwarding resizes from the parent to the child.
+
+However, _this package specifically_ does not forward the pixel
+dimensions of the terminal, and instead report as 0.
+
+To get around this, the plugin can attempt to query the terminals of
+the parent processes in addition to the one on standard output.
+It does this by running `pstree` and `ps`.
+
+This behavior can be disabled by setting `g:image_extmarks_parent_tty_magic` to 0.
 
 
 Commands
@@ -287,6 +310,27 @@ If a truthy boolean, no remaps will take place.
 
 If a list, then the entries will be interpreted as maps (such as "zf") to
 _not_ remap.
+
+### g:image\_extmarks\_parent\_tty\_magic
+
+Enables fetching character sizes from terminals of parent processes.
+Defaults to 1 (true).
+
+
+### g:image\_extmarks\_ioctl\_magic
+
+Enables fetching the ioctl for TIOCGWINSZ from Python. Defaults to 1
+(true).
+
+If disabled and `g:image_extmarks_TIOCGWINSZ` is not manually set,
+TIOCGWINSZ will fall back to 0x5413, its value on Linux.
+
+
+### g:image\_extmarks\_TIOCGWINSZ
+
+The number corresponding to the TIOCGWINSZ ioctl.
+If `g:image_extmarks_ioctl_magic` is 1, then this variable is set
+automatically. Otherwise, it can be specified by the user.
 
 
 Autocmds

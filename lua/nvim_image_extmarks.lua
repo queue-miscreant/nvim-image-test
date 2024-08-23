@@ -229,6 +229,7 @@ end
 -- Move the extmark identified by {id} so that the image stretches
 -- starting at row {start_row} of the buffer and ends at {end_row}.
 -- Be aware that this can resize the image.
+-- TODO: Need better interface. This shouldn't change based on prior calls to create_virtual or create
 --
 ---@param id integer
 ---@param start_row integer

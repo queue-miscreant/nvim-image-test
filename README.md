@@ -94,6 +94,23 @@ It does this by running `pstree` and `ps`.
 This behavior can be disabled by setting `g:image_extmarks_parent_tty_magic` to 0.
 
 
+Similar Projects
+----------------
+
+I'd be remiss to not include links to projects that are doing similar things:
+
+- [hologram.nvim](https://github.com/edluffy/hologram.nvim), which appears to be no longer updated and seems to have been superceded by...
+- [image.nvim](https://github.com/3rd/image.nvim), which has similar features using Kitty graphics
+
+Since these projects don't target Sixel, I'd like to think I'm still providing a utility here.
+
+
+Documentation
+=============
+
+See also the included helpdoc.
+
+
 Commands
 --------
 
@@ -360,10 +377,14 @@ before drawing sixel blobs.
 
 
 TODOs
------
+=====
 
 - Configurable limit for maximum number of ImageMagick subprocesses
 - Images crop to window width
-- Crop thresholds
+- Crop thresholds (e.g., do not attempt to crop, crop only at most n lines)
+- Reinstate hiding extmarks when cursor moves under them
+- Testing
+- New `virt_lines` extmarks cause misalignment of images
+- Images can still get desynced from their position on screen
 - Hide text behind extmark with highlight
     - This is more difficult than it seems. 256-color terminals use `gui` highlights, which don't support `start=`/`stop=`

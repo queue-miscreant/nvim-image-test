@@ -27,8 +27,6 @@ local function redraw(force, resized)
   local new_extmarks = {}
   local new_count = 0
 
-  -- TODO: lazy drawing needs to accumulate!
-
   ---@type wrapped_extmark[]
   local draw_accum = {}
 

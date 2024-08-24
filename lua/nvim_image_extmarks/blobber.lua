@@ -23,32 +23,6 @@ local interface = require "nvim_image_extmarks.interface"
 local loop = vim.uv
 if loop == nil then loop = vim.loop end
 
----@class extmark_details
----@field id integer
----@field end_row? integer
----@field virt_lines? [string, string][][]
-
----@class wrapped_extmark
----@field start_row integer
----@field height integer
----@field crop_row_start integer
----@field crop_row_end integer
----@field buffer_id integer
----@field details extmark_details
----@field path string | nil
----@field error string | nil
----@field screen_position [integer, integer]
-
----@alias blob_path string
----@alias cache_id string
----@alias extmark_coords number[]
-
----@class callback_details
----@field screen_position extmark_coords
----@field extmark_id integer
----@field buffer_id integer
----@field retry_number? integer
-
 local blobber = {
   ---@type {[blob_path]: {[cache_id]: string}}
   blob_cache = {},

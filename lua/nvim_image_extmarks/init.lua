@@ -16,9 +16,8 @@ assert(
 )
 
 -- Namespace for plugin functions
---
----@diagnostic disable-next-line
-sixel_extmarks = {}
+local sixel_extmarks = {}
+
 local creating_tab = false
 
 ---@param lhs string
@@ -418,3 +417,5 @@ vim.api.nvim_create_autocmd(
     callback = function() sixel_extmarks.clear_screen() end
   }
 )
+
+return sixel_extmarks

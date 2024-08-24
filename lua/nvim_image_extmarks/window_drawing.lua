@@ -6,10 +6,6 @@ local interface = require "nvim_image_extmarks.interface"
 
 local window_drawing = {}
 
----@class text_height_params
----@field start_row integer
----@field end_row integer
-
 ---@type fun(window_id: integer, y: text_height_params): { all: integer, fill: integer }
 local text_height
 if vim.api.nvim_win_text_height ~= nil then
@@ -36,16 +32,6 @@ function window_drawing.extmark_cache_entry(window_id, extmark)
     extmark.crop_row_end
   )
 end
-
-
----@class window_dimensions
----@field height integer
----@field topline integer Top line of the buffer
----@field botline integer Bottom line of the buffer
----@field winrow integer Start row of the current tabpage
----@field wincol integer Start column of  the current tabpage
----@field textoff integer Sign/number column offset
----@field topfill integer Filler (extmark) lines included at the top of the window
 
 ---@return window_dimensions
 local function get_windims()

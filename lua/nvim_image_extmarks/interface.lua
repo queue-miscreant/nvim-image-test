@@ -4,15 +4,6 @@
 -- They are generally "dumber" than the functions exposed to the user, and
 -- are focused primarily on buffer-local storage of extmark and file data.
 
----@class image_extmark
----@field id integer
----@field start_row integer
----@field end_row? integer
----@field height? integer
----@field type "inline"|"virtual"
----@field path string|nil
----@field error string|nil
-
 local interface = {
   namespace = vim.api.nvim_create_namespace("Nvim-image"),
 }

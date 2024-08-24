@@ -22,10 +22,10 @@ local sixel_raw = {
   drawing_enabled = true,
 }
 
--- This is the default value in Linux (and other kernels),
--- but can also be derived from the Python installation
 local TIOCGWINSZ = vim.g.image_extmarks_TIOCGWINSZ
 if TIOCGWINSZ == nil then
+  -- This is the default value in Linux (and other kernels),
+  -- but can also be derived from the Python installation
   TIOCGWINSZ =  0x5413
 end
 

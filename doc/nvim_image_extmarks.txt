@@ -3,65 +3,63 @@
 ================================================================================
 INTRODUCTION                                            *nvim-image-extmarks-introduction*
 
-        An extension to nvim's extmarks which supports sixel image content.
+An extension to nvim's extmarks which supports sixel image content.
 
-        [Sixels](https://en.wikipedia.org/wiki/Sixel) are a blob of binary
-        data which, when written to a supported terminal, display an image.
-        To see if your terminal is supoorted, a good resource to check is
-        [Are We Sixel Yet?](https://www.arewesixelyet.com/).
+[Sixels](https://en.wikipedia.org/wiki/Sixel) are a blob of binary data which,
+when written to a supported terminal, display an image.
+To see if your terminal is supoorted, a good resource to check is
+[Are We Sixel Yet?](https://www.arewesixelyet.com/).
 
-        This plugin relies on ImageMagick for converting images into the
-        equivalent sixels. Run:
+This plugin relies on ImageMagick for converting images into the equivalent
+sixels. Run:
+>
+        magick -list format | grep -i sixel
 
-        `magick -list format | grep -i sixel`
+to see if your installation supports sixels.
 
-        to see if your installation supports sixels.
-
-        Depending on version, ImageMagick command might be `convert` instead.
-        See also |g:image_extmarks_imagemagick_command|.
+Depending on version, ImageMagick command might be `convert` instead.
+See also |g:image_extmarks_imagemagick_command|.
 
 
 CACHE                                                   *nvim-image-extmarks-cache*
 
-        All generated sixels are cached locally (in Lua state) to improve
-        performance. If the file changes in the filesystem, it will be
-        necessary to clear this cache by calling |sixel_extmarks.clear_cache|.
+All generated sixels are cached locally (in Lua state) to improve performance.
+If the file changes in the filesystem, it will be necessary to clear this
+cache by calling |sixel_extmarks.clear_cache|.
 
-        Images are cached by their height in rows, as well as how many rows
-        are excluded from the top and bottom of the image.
+Images are cached by their height in rows, as well as how many rows are
+excluded from the top and bottom of the image.
 
 
 TMUX                                                    *nvim-image-extmarks-tmux*
 
-        As of writing this documentation, tmux, the terminal multiplexer,
-        newly supports sixel content. However, if you experiment with this
-        feature on your own, you may find that sixels are "sticky" between
-        panes and windows.
+As of writing this documentation, tmux, the terminal multiplexer, newly
+supports sixel content. However, if you experiment with this feature on your
+own, you may find that sixels are "sticky" between panes and windows.
 
-        To get around this, when clearing the screen, the plugin will attempt
-        to "refresh" the content in the session by quickly detaching and
-        attaching. With enough delay, this produces visible artifacts,
-        including:
+To get around this, when clearing the screen, the plugin will attempt to
+"refresh" the content in the session by quickly detaching and attaching.
+With enough delay, this produces visible artifacts, including:
 
-            - boxes of "+" characters where the images would be displayed
-            - sixel binary content, which appears as random ASCII characters
+    - boxes of "+" characters where the images would be displayed
+    - sixel binary content, which appears as random ASCII characters
 
 
 LAYERED TERMINALS                                       *nvim-image-extmarks-ttys*
 
-        Sometimes, a process may spawn a pseudoterminal. For example, the
-        Python package `pexpect` allows you to control a child terminal from
-        Python, while also forwarding resizes from the parent to the child.
+Sometimes, a process may spawn a pseudoterminal. For example, the Python
+package `pexpect` allows you to control a child terminal from Python,
+while also forwarding resizes from the parent to the child.
 
-        However, _this package specifically_ does not forward the pixel
-        dimensions of the terminal, and instead report as 0.
+However, _this package specifically_ does not forward the pixel dimensions
+of the terminal, and instead report as 0.
 
-        To get around this, the plugin can attempt to query the terminals of
-        the parent processes in addition to the one on standard output.
-        It does this by running `pstree` and `ps`.
+To get around this, the plugin can attempt to query the terminals of the parent
+processes in addition to the one on standard output.
+It does this by running `pstree` and `ps`.
 
-        This behavior can be disabled by setting
-        |g:image_extmarks_parent_tty_magic| to 0.
+This behavior can be disabled by setting
+|g:image_extmarks_parent_tty_magic| to 0.
 
 
 --------------------------------------------------------------------------------
@@ -69,8 +67,8 @@ COMMANDS                                                *nvim-image-extmarks-com
 
 :[range]CreateImage {filepath}                          *CreateImage*
 
-        Create an image extmark with the given filename at the range
-        specified. This wraps |sixel_extmarks.create| below.
+Create an image extmark with the given filename at the range specified.
+This wraps |sixel_extmarks.create| below.
 
 
 --------------------------------------------------------------------------------
@@ -308,56 +306,56 @@ g:image_extmarks_TIOCGWINSZ                             *g:image_extmarks_TIOCGW
 AUTOCMDS                                                *nvim-sixel-extmarks-autocmds
                                                         *ImageExtmarks
 
-        |autocmd|s which are used by the plugin live under the group
-        `ImageExtmarks`. These include:
+|autocmd|s which are used by the plugin live under the group `ImageExtmarks`.
+These include:
 
-        - |TextChanged|, |TextChangedI|, |CursorMoved| (Buffer-local)
-            - Attempt to redraw, if necessary
-        - |InsertEnter|, |InsertLeave| (Buffer-local)
-            - See |g:image_extmarks_slow_insert|
-        - |TabClosed|
-            - Attempt to redraw, if necessary
-        - |VimEnter|, |VimResized|, |TabEnter|
-            - Force redraw
-        - |TabLeave|, |ExitPre|
-            - Clear the screen of all sixel images
+- |TextChanged|, |TextChangedI|, |CursorMoved| (Buffer-local)
+    - Attempt to redraw, if necessary
+- |InsertEnter|, |InsertLeave| (Buffer-local)
+    - See |g:image_extmarks_slow_insert|
+- |TabClosed|
+    - Attempt to redraw, if necessary
+- |VimEnter|, |VimResized|, |TabEnter|
+    - Force redraw
+- |TabLeave|, |ExitPre|
+    - Clear the screen of all sixel images
 
-        These attempt to replicate the feel of normal text extmarks without
-        extra configuration.
-        They can be overridden or unbound at your leisure using |autocmd|!.
+These attempt to replicate the feel of normal text extmarks without
+extra configuration.
+They can be overridden or unbound at your leisure using |autocmd|!.
 
 
 EVENTS                                                  *nvim-sixel-extmarks-events*
                                                         *ImageExtmarks#pre_draw*
 
-        `User`-type autocmds are fired under the `ImageExtmarks#pre_draw`
-        group immediately before drawing sixel blobs.
+`User`-type autocmds are fired under the `ImageExtmarks#pre_draw`
+group immediately before drawing sixel blobs.
 
 
 --------------------------------------------------------------------------------
 FOLDING                                                 *nvim-sixel-extmarks-folding*
 
-        The plugin tends to respect folds in two ways:
+The plugin tends to respect folds in two ways:
 
-        - If an extmark intersects with a fold, then the image is not drawn
-        - If a fold is completely contained by an extmark, the image will be
-          resized to the folded height
+    - If an extmark intersects with a fold, then the image is not drawn
+    - If a fold is completely contained by an extmark, the image will be
+      resized to the folded height
 
-        However, opening and closing folds will NOT automatically trigger
-        a redraw. Unfortunately, this is a Neovim limitation -- folding
-        commands and keybinds do not trigger any autocmds (even |WinScrolled|).
+However, opening and closing folds will NOT automatically trigger a redraw.
+Unfortunately, this is a Neovim limitation -- folding commands and keybinds
+do not trigger any autocmds (even |WinScrolled|).
 
-        To get around this, the default commands which interact with folding
-        (those which start with z) are remapped to perform their normal action
-        AND call the redraw function. These maps are buffer-local and are added
-        along with the buffer-local autocmds above.
-        See |g:image_extmarks_disable_fold_remaps| for controlling this.
+To get around this, the default commands which interact with folding (those
+which start with z) are remapped to perform their normal action AND call the
+redraw function. These maps are buffer-local and are added along with the
+buffer-local autocmds above.
+See |g:image_extmarks_disable_fold_remaps| for controlling this.
 
-                                                        *nvim-sixel-extmarks-Ex-command*
+                                                *nvim-sixel-extmarks-Ex-command*
 
-        Similarly to folds, there is no way to detect when the terminal is
-        scrolled with an Ex command, which can cause phantom image artifacts
-        to be remain. This extends to |fold|, |foldopen|, ...
+Similarly to folds, there is no way to detect when the terminal is scrolled
+with an Ex command, which can cause phantom image artifacts to be remain.
+This extends to |fold|, |foldopen|, ...
 
 
 ================================================================================

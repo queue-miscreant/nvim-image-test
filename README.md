@@ -1,5 +1,5 @@
-nvim-image-extmarks
-===================
+sixel-extmarks
+==============
 
 A plugin for drawing sixel images from nvim. Uses extmarks to keep track of the locations in the buffer.
 
@@ -11,7 +11,7 @@ Note that this plugin is only meant to expose a convenient API. Images will not 
 automatically - for example, previews in a netrw buffer - without another plugin.
 
 See also [fence-preview](https://github.com/queue-miscreant/fence-preview), a sister project to preview
-markdown-formatted content like LaTeX.
+markdown-formatted content such as LaTeX.
 
 
 Requirements
@@ -57,11 +57,19 @@ However, opening and closing folds will _not_ automatically trigger a redraw.
 Unfortunately, this is a Neovim limitation -- folding commands and keybinds do not trigger any
 autocmds (not even `WinScrolled`).
 
+To get around this, the default keymaps which interact with folding (those which start with z)
+are locally remapped to perform their normal action AND call the redraw function.
+
 
 ### Scrolling
 
-Similarly, there is no way to detect when the terminal is scrolled with an Ex command, which
-can cause phantom image artifacts to be remain.
+Similarly, there is no way (or it is very difficult) to detect the following display changes:
+
+- Scrolling the terminal with an Ex command
+- Adding things that change vertical window content, such as `nvim_buf_set_extmark` with `virt_lines`
+- Scrolling a window above one with images in it
+
+These may cause phantom image artifacts to appear in places they shouldn't.
 
 
 ### tmux
@@ -125,11 +133,13 @@ Lua Functions
 
 ### sixel\_extmarks.create
 
-`sixel_extmarks.create(
+```
+sixel_extmarks.create(
   start_row: integer,
   end_row: integer,
   path: string
-) -> integer`
+) -> integer
+```
 
 Create a new image extmark which stretches from (0-indexed) line
 `start_row` to line `end_row` of the buffer and has content
@@ -138,11 +148,13 @@ from the file at `path`.
 
 ### sixel\_extmarks.create\_virtual
 
-`sixel_extmarks.create_virtual(
+```
+sixel_extmarks.create_virtual(
   {start_row}: integer,
   {height}: integer,
   {path}: string
-) -> integer`
+) -> integer
+```
 
 Create a new "virtual" image extmark on (0-indexed) line `start_row`
 of the buffer which is `height` rows tall and has content from the
@@ -153,10 +165,12 @@ Virtual extmarks are only supported on Neovim >=0.10.
 
 ### sixel\_extmarks.get
 
-`sixel_extmarks.get(
+```
+sixel_extmarks.get(
   start_row: integer,
   end_row: integer
-) -> image_extmark[]`
+) -> image_extmark[]
+```
 
 Retrieve a list of image extmarks in the current buffer between
 (0-indexed) rows `start_row` and `end_row`.
@@ -176,7 +190,9 @@ The return value is a list of tables with the following structure:
 
 ### sixel\_extmarks.get\_by\_id
 
-`sixel_extmarks.get_by_id(id: integer) -> image_extmark|nil`
+```
+sixel_extmarks.get_by_id(id: integer) -> image_extmark|nil
+```
 
 Retrieve an extmark in the current buffer with the given id.
 Returns a table which is structured the same as the entries of the return type
@@ -185,7 +201,9 @@ of `sixel_extmarks.get`.
 
 ### sixel\_extmarks.remove
 
-`sixel_extmarks.remove(id: integer)`
+```
+sixel_extmarks.remove(id: integer)
+```
 
 Delete the extmark in the current buffer identified by `id`. This does NOT free
 from the cache any of the blobs generated from the file the extmark points to.
@@ -193,7 +211,9 @@ from the cache any of the blobs generated from the file the extmark points to.
 
 ### sixel\_extmarks.remove\_all
 
-`sixel_extmarks.remove_all()`
+```
+sixel_extmarks.remove_all()
+```
 
 Delete all extmarks in the current buffer. The same caveat about the
 cache applies here as well.
@@ -201,7 +221,9 @@ cache applies here as well.
 
 ### sixel\_extmarks.move
 
-`sixel_extmarks.move(id: integer, start_row: integer, end_row?: integer)`
+```
+sixel_extmarks.move(id: integer, start_row: integer, end_row?: integer)
+```
 
 Move the extmark identified by `id`.
 
@@ -217,7 +239,9 @@ If given, `end_row` is the new height of the image in lines.
 
 ### sixel\_extmarks.change\_content
 
-`sixel_extmarks.change_content(id: integer, path: string)`
+```
+sixel_extmarks.change_content(id: integer, path: string)
+```
 
 Change the content of the extmark identified by `id` to the file at
 `path`.
@@ -225,9 +249,11 @@ Change the content of the extmark identified by `id` to the file at
 
 ### sixel\_extmarks.clear\_cache
 
-`sixel_extmarks.clear_cache()`
-`sixel_extmarks.clear_cache(path: string)`
-`sixel_extmarks.clear_cache(paths: string[])`
+```
+sixel_extmarks.clear_cache()
+sixel_extmarks.clear_cache(path: string)
+sixel_extmarks.clear_cache(paths: string[])
+```
 
 Clear the sixel blob cache. If no argument is supplied, then the entire
 cache is cleared.
@@ -241,7 +267,9 @@ files in the list are removed.
 
 ### sixel\_extmarks.clear\_screen
 
-`sixel_extmarks.clear_screen()`
+```
+sixel_extmarks.clear_screen()
+```
 
 Clear all content drawn to the screen. Unlike `:mode`, this has the
 additional guarantee of working inside a tmux session.
@@ -249,15 +277,19 @@ additional guarantee of working inside a tmux session.
 
 ### sixel\_extmarks.redraw
 
-`sixel_extmarks.redraw()`
-`sixel_extmarks.redraw(force: boolean)`
+```
+sixel_extmarks.redraw()
+sixel_extmarks.redraw(force: boolean)
+```
 
 Clear the screen and redraw the currently displayed content.
 
 
 ### sixel\_extmarks.disable\_drawing
 
-`sixel_extmarks.disable_drawing()`
+```
+sixel_extmarks.disable_drawing()
+```
 
 Disable drawing blobs.
 
@@ -267,7 +299,9 @@ be pushed to the screen.
 
 ### sixel\_extmarks.set\_extmark\_error
 
-`sixel_extmarks.set_extmark_error(id: integer|image_extmark, error_text: string|nil)`
+```
+sixel_extmarks.set_extmark_error(id: integer|image_extmark, error_text: string|nil)
+```
 
 Set error text on an extmark.
 
@@ -277,14 +311,18 @@ Set error text on an extmark.
 
 ### sixel\_extmarks.enable\_drawing
 
-`sixel_extmarks.enable_drawing()`
+```
+sixel_extmarks.enable_drawing()
+```
 
 Enable drawing blobs, after having disabled them with `disable_drawing`.
 
 
 ### sixel\_extmarks.dump\_blob\_cache
 
-`sixel_extmarks.dump_blob_cache()`
+```
+sixel_extmarks.dump_blob_cache()
+```
 
 Generate a snapshot of the blob cache.
 Rather than the cache, the first two layers of keys are returned, i.e.,
@@ -384,7 +422,6 @@ TODOs
 - Crop thresholds (e.g., do not attempt to crop, crop only at most n lines)
 - Reinstate hiding extmarks when cursor moves under them
 - Testing
-- New `virt_lines` extmarks cause misalignment of images
 - Images can still get desynced from their position on screen
 - Hide text behind extmark with highlight
     - This is more difficult than it seems. 256-color terminals use `gui` highlights, which don't support `start=`/`stop=`

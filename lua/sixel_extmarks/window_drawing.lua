@@ -1,8 +1,8 @@
--- nvim_image_extmarks/window_drawing.lua
+-- sixel_extmarks/window_drawing.lua
 --
 -- Gather information about current extmark positions, relative to the current window.
 
-local interface = require "nvim_image_extmarks.interface"
+local interface = require "sixel_extmarks.interface"
 
 local window_drawing = {}
 

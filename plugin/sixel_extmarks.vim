@@ -72,4 +72,7 @@ if exepath(g:image_extmarks_imagemagick_command) == ""
   echohl
 endif
 
+" Import the module for the first time
+lua require "sixel_extmarks"
+
 let g:nvim_image_extmarks_loaded = 1

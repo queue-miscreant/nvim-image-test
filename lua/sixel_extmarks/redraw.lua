@@ -1,6 +1,11 @@
-local sixel_raw = require "nvim_image_extmarks.sixel_raw"
-local blobber = require "nvim_image_extmarks.blobber"
-local window_drawing = require "nvim_image_extmarks.window_drawing"
+-- sixel_extmarks/redraw.lua
+--
+-- Primary redraw function. Implements general caching for each tabpage
+-- for lazy redraws which minimize screen clears.
+
+local sixel_raw = require "sixel_extmarks.sixel_raw"
+local blobber = require "sixel_extmarks.blobber"
+local window_drawing = require "sixel_extmarks.window_drawing"
 
 local loop = vim.uv
 if loop == nil then loop = vim.loop end
@@ -57,7 +62,7 @@ local function redraw(force, resized)
     need_clear = need_clear or new_extmarks[cache_entry] == nil
   end
 
-  local timer = vim.g.image_extmarks_buffer_ms or 0
+  local timer = tonumber(vim.g.image_extmarks_buffer_ms) or 0
   if need_clear then
     blobber.clear_running()
     sixel_raw.clear_screen()

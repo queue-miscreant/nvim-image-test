@@ -1,4 +1,4 @@
--- nvim_image_extmarks/blobber.lua
+-- sixel_extmarks/blobber.lua
 --
 -- Helper functions for creating and drawing blobs.
 --
@@ -17,8 +17,8 @@
 -- If the cache entry is nil, then no process is currently generating that blob
 -- If the cache entry is {}, then a runner is generating the blob, but no positions will be drawn with it
 
-local sixel_raw = require "nvim_image_extmarks.sixel_raw"
-local interface = require "nvim_image_extmarks.interface"
+local sixel_raw = require "sixel_extmarks.sixel_raw"
+local interface = require "sixel_extmarks.interface"
 
 local loop = vim.uv
 if loop == nil then loop = vim.loop end

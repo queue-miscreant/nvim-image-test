@@ -1,4 +1,4 @@
--- nvim_image_extmarks/interface.lua
+-- sixel_extmarks/interface.lua
 --
 -- Functions which wrap nvim's native extmark interface.
 -- They are generally "dumber" than the functions exposed to the user, and

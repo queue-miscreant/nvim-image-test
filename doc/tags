@@ -16,7 +16,6 @@ nvim-image-extmarks-ttys	nvim_image_extmarks.txt	/*nvim-image-extmarks-ttys*
 nvim-sixel-extmarks-Ex-command	nvim_image_extmarks.txt	/*nvim-sixel-extmarks-Ex-command*
 nvim-sixel-extmarks-events	nvim_image_extmarks.txt	/*nvim-sixel-extmarks-events*
 nvim-sixel-extmarks-folding	nvim_image_extmarks.txt	/*nvim-sixel-extmarks-folding*
-nvim_image_extmarks.txt	nvim_image_extmarks.txt	/*nvim_image_extmarks.txt*
 sixel_extmarks-functions	nvim_image_extmarks.txt	/*sixel_extmarks-functions*
 sixel_extmarks.change_content	nvim_image_extmarks.txt	/*sixel_extmarks.change_content*
 sixel_extmarks.clear_cache	nvim_image_extmarks.txt	/*sixel_extmarks.clear_cache*
@@ -33,3 +32,4 @@ sixel_extmarks.redraw	nvim_image_extmarks.txt	/*sixel_extmarks.redraw*
 sixel_extmarks.remove	nvim_image_extmarks.txt	/*sixel_extmarks.remove*
 sixel_extmarks.remove_all	nvim_image_extmarks.txt	/*sixel_extmarks.remove_all*
 sixel_extmarks.set_extmark_error	nvim_image_extmarks.txt	/*sixel_extmarks.set_extmark_error*
+sixel_extmarks.txt	nvim_image_extmarks.txt	/*sixel_extmarks.txt*

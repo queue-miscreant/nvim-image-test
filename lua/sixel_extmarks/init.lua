@@ -1,19 +1,11 @@
--- nvim_image_extmarks.lua
+-- sixel_extmakrs/init.lua
 --
 -- Functions providing a consistent interface to the management of sixel extmarks.
 
-local interface = require "nvim_image_extmarks.interface"
-local sixel_raw = require "nvim_image_extmarks.sixel_raw"
-local blobber = require "nvim_image_extmarks.blobber"
-local redraw = require "nvim_image_extmarks.redraw"
-
-assert(
-  (
-    type(vim.g.image_extmarks_buffer_ms) == "number" or
-    type(vim.g.image_extmarks_buffer_ms) == "nil"
-  ),
-  "g:image_extmarks_buffer_ms must be a number"
-)
+local interface = require "sixel_extmarks.interface"
+local sixel_raw = require "sixel_extmarks.sixel_raw"
+local blobber = require "sixel_extmarks.blobber"
+local redraw = require "sixel_extmarks.redraw"
 
 -- Namespace for plugin functions
 local sixel_extmarks = {}

@@ -1,4 +1,4 @@
-*nvim_image_extmarks.txt*                                 Image extmarks
+*sixel_extmarks.txt*                                    Image extmarks
 
 ================================================================================
 INTRODUCTION                                            *nvim-image-extmarks-introduction*

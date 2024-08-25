@@ -1,4 +1,4 @@
--- nvim_image_extmarks/sixel_raw.lua
+-- sixel_extmarks/sixel_raw.lua
 --
 -- Low-level terminal functions. Primarily involves drawing sixels to the tty,
 -- clearing the screen safely, and getting the character height for drawing.

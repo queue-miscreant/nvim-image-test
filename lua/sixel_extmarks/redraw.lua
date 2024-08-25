@@ -11,7 +11,21 @@ local loop = vim.uv
 if loop == nil then loop = vim.loop end
 
 local redraw_timer = nil
-local lazy_accumulator = {}
+
+-- Format extmark parameters which influence sixel data.
+-- This is the identifier (extmark_id) along with data which can change as windows move
+-- around, such as crops.
+--
+---@param window_id integer
+---@param extmark wrapped_extmark
+local function extmark_cache_entry(window_id, extmark)
+  return ("%d.%d.%d.%d"):format(
+    window_id,
+    extmark.details.id,
+    extmark.crop_row_start,
+    extmark.crop_row_end
+  )
+end
 
 -- Draw all extmark content on the screen.
 --
@@ -29,11 +43,9 @@ local function redraw(force, resized)
   local previous_extmarks = vim.t.image_extmarks_drawn or {}
 
   local need_clear = false
+  ---@type {[string]: wrapped_extmark}
   local new_extmarks = {}
   local new_count = 0
-
-  ---@type wrapped_extmark[]
-  local draw_accum = {}
 
   for _, window in pairs(windows) do
     vim.api.nvim_win_call(window, function()
@@ -43,14 +55,13 @@ local function redraw(force, resized)
       need_clear = need_clear or need_clear_window
 
       for _, extmark in pairs(extmarks_to_draw) do
-        local cache_entry = window_drawing.extmark_cache_entry(window, extmark)
-        new_extmarks[cache_entry] = true
-        table.insert(draw_accum, extmark)
+        local cache_entry = extmark_cache_entry(window, extmark)
+        new_extmarks[cache_entry] = extmark
 
         -- Add to the lazy list if we didn't draw it previously
         if previous_extmarks[cache_entry] == nil and queued_extmarks[cache_entry] == nil then
-          queued_extmarks[cache_entry] = true
-          table.insert(lazy_accumulator, extmark)
+          queued_extmarks[cache_entry] = extmark
+          -- table.insert(lazy_accumulator, extmark)
           new_count = new_count + 1
         end
       end
@@ -95,13 +106,21 @@ local function redraw(force, resized)
         redraw_timer:close()
       end)
 
+      local new_drawn
+      local drawn_synchronous
       if sixel_raw.screen_cleared then
-        blobber.draw(draw_accum)
+        drawn_synchronous = blobber.draw(new_extmarks, redraw)
+        new_drawn = {}
       else
-        blobber.draw(lazy_accumulator)
+        drawn_synchronous = blobber.draw(queued_extmarks, redraw)
+        new_drawn = vim.api.nvim_tabpage_get_var(current_tabpage, "image_extmarks_drawn")
       end
-      lazy_accumulator = {}
-      vim.api.nvim_tabpage_set_var(current_tabpage, "image_extmarks_drawn", new_extmarks)
+
+      for i = 1, #drawn_synchronous do
+        new_drawn[drawn_synchronous[i]] = true
+      end
+      -- Push updates to variable
+      vim.api.nvim_tabpage_set_var(current_tabpage, "image_extmarks_drawn", new_drawn)
       pcall(function() vim.api.nvim_tabpage_del_var(current_tabpage, "image_extmarks_queued") end)
     end)
   )

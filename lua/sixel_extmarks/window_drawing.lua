@@ -18,21 +18,6 @@ else
 end
 
 
--- Format extmark parameters which influence sixel data.
--- This is the identifier (extmark_id) along with data which can change as windows move
--- around, such as crops.
---
----@param window_id integer
----@param extmark wrapped_extmark
-function window_drawing.extmark_cache_entry(window_id, extmark)
-  return ("%d.%d.%d.%d"):format(
-    window_id,
-    extmark.details.id,
-    extmark.crop_row_start,
-    extmark.crop_row_end
-  )
-end
-
 ---@return window_dimensions
 local function get_windims()
   local wininfo = vim.fn.getwininfo(vim.fn.win_getid())

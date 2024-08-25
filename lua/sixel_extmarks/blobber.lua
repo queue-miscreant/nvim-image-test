@@ -127,28 +127,29 @@ function blobber.blobify(
     detached = true
   })
 
-  local sixel = ""
+  local sixel = {}
   stdout:read_start(function(err, data)
     assert(not err, err)
-    if data == nil then callback(extmark, sixel) return end
-    sixel = sixel .. data
+    if data == nil then callback(extmark, table.concat(sixel, "")) return end
+    table.insert(sixel, data)
   end)
 
-  local error_ = ""
+  local error_ = {}
   stderr:read_start(function(err, data)
     assert(not err, err)
     if data == nil then
-      if error_callback ~= nil then error_callback(extmark, error_) end
+      if error_callback ~= nil then error_callback(extmark, table.concat(error_, "")) end
       return
     end
-    error_ = error_ .. data
+    table.insert(error_, data)
   end)
 end
 
 
 ---@param extmark wrapped_extmark
 ---@param blob string
-function blobber.store_and_draw_blob(extmark, blob)
+---@param on_asynchronous_done fun(): nil The asynchronous drawing function to call after caching
+function blobber.store_and_draw_blob(extmark, blob, on_asynchronous_done)
   local index = extmark_to_cache_id(extmark)
   local path = extmark.path
   local locations = blobber.running_cache[path][index]
@@ -174,26 +175,17 @@ function blobber.store_and_draw_blob(extmark, blob)
     blobber.blob_cache[path] = temp
   end
 
-  fire_pre_draw(locations)
-
-  sixel_raw.draw_sixels(
-    vim.tbl_map(
-      ---@param callback_details callback_details
-      function(callback_details)
-        return { blob, callback_details.screen_position } ---[[@as return [ string, number[] ] ]]
-      end,
-      locations
-    ) --[[@as [ string, number[] ][] ]]
-  )
-
   -- Blobber no longer running
   blobber.running_cache[path][index] = nil
+
+  vim.defer_fn(on_asynchronous_done, 0)
 end
 
 
 ---@param extmark wrapped_extmark
 ---@param error_ string
-function blobber.update_errors(extmark, error_)
+---@param on_asynchronous_done fun(): nil The asynchronous drawing function to call after caching
+function blobber.update_errors(extmark, error_, on_asynchronous_done)
   local index = extmark_to_cache_id(extmark)
   local path = extmark.path
   local locations = blobber.running_cache[path][index]
@@ -218,7 +210,7 @@ function blobber.update_errors(extmark, error_)
 
     -- Add the other locations
     blobber.running_cache[path][index] = nil
-    blobber.try_generate_blob(extmark)
+    blobber.try_generate_blob(extmark, on_asynchronous_done)
     blobber.running_cache[path][index] = locations
 
     return
@@ -251,7 +243,8 @@ end
 -- the last `blob_cache.clear_running` will be drawn.
 --
 ---@param extmark wrapped_extmark
-function blobber.try_generate_blob(extmark)
+---@param on_asynchronous_done fun(): nil The asynchronous drawing function to call after caching
+function blobber.try_generate_blob(extmark, on_asynchronous_done)
   local index = extmark_to_cache_id(extmark)
 
   if blobber.running_cache[extmark.path] == nil then
@@ -275,8 +268,12 @@ function blobber.try_generate_blob(extmark)
 
   blobber.blobify(
     extmark,
-    blobber.store_and_draw_blob,
-    blobber.update_errors
+    function(extmark_, blob)
+      blobber.store_and_draw_blob(extmark_, blob, on_asynchronous_done)
+    end,
+    function(extmark_, error_)
+      blobber.update_errors(extmark_, error_, on_asynchronous_done)
+    end
   )
 
   blobber.running_cache[extmark.path][index] = {
@@ -312,9 +309,10 @@ end
 
 -- Either retrieve a blob from the cache, or start blobifying and return nil.
 --
----@param extmark wrapped_extmark
----@return [string, [number, number]] | nil
-function blobber.lookup_or_generate_blob(extmark)
+---@param extmark wrapped_extmark Extmark to lookup
+---@param on_asynchronous_done fun(): nil The asynchronous drawing function to call after caching
+---@return [string, [integer, integer]] | nil
+function blobber.lookup_or_generate_blob(extmark, on_asynchronous_done)
   return vim.api.nvim_buf_call(extmark.buffer_id, function()
     if extmark.error ~= nil then
       interface.set_extmark_error(
@@ -353,30 +351,38 @@ function blobber.lookup_or_generate_blob(extmark)
         return nil
       end
 
-      blobber.try_generate_blob(extmark)
+      blobber.try_generate_blob(extmark, on_asynchronous_done)
       return nil
     end
 
     return {
       cache_lookup,
-      extmark.screen_position
+      extmark.screen_position,
     }
   end)
 end
 
----@param extmarks wrapped_extmark[]
-function blobber.draw(extmarks)
-  -- Asynchronous draws
-  local blobs = vim.tbl_map(
-    blobber.lookup_or_generate_blob,
-    extmarks
-  )
+---@param extmarks {[string]: wrapped_extmark} A table of extmarks to draw, indexed by a cache id
+---@param on_asynchronous_done fun(): nil The asynchronous drawing function to call after caching
+---@return string[]
+function blobber.draw(extmarks, on_asynchronous_done)
+  -- Build a list of extmarks we can draw synchronously
+  local drawables = {}
+  local cache_hits = {}
+  local details = {}
+  for cache_id, extmark in pairs(extmarks) do
+    local maybe_draw = blobber.lookup_or_generate_blob(extmark, on_asynchronous_done)
+    if maybe_draw ~= nil then
+      table.insert(drawables, maybe_draw)
+      table.insert(cache_hits, cache_id)
+      table.insert(details, as_callback_details(extmark))
+    end
+  end
 
-  -- Synchronous draws
-  fire_pre_draw(
-    vim.tbl_map(as_callback_details, extmarks)
-  )
-  sixel_raw.draw_sixels(blobs)
+  fire_pre_draw(details)
+  sixel_raw.draw_sixels(drawables)
+
+  return cache_hits
 end
 
 

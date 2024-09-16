@@ -259,6 +259,13 @@ g:image_extmarks_buffer_ms                              *g:image_extmarks_buffer
         clearing and redrawing.
 
 
+g:image_extmarks_min_cropped_height                     *g:image_extmarks_min_cropped_height*
+
+        Controls the minimum height (in lines) for which cropping images is
+        allowed. The value 0 means any amount of crop is allowed.
+        This can also be set to -1 to disable drawing cropped images entirely.
+
+
 g:image_extmarks_slow_insert                            *g:image_extmarks_slow_insert*
 
         Activates "slow" insert mode.

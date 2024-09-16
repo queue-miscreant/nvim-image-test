@@ -113,7 +113,9 @@ local function redraw(force, resized)
         new_drawn = {}
       else
         drawn_synchronous = blobber.draw(queued_extmarks, redraw)
-        new_drawn = vim.api.nvim_tabpage_get_var(current_tabpage, "image_extmarks_drawn")
+        local ok
+        ok, new_drawn = pcall(function() return vim.api.nvim_tabpage_get_var(current_tabpage, "image_extmarks_drawn") end)
+        if not ok then new_drawn = {} end
       end
 
       for i = 1, #drawn_synchronous do

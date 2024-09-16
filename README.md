@@ -343,8 +343,17 @@ Defaults to `magick`, or to `convert` if that command doesn't exist.
 
 Controls the amount of delay, in milliseconds, between the screen being cleared
 and extmarks being redrawn.
+
 If multiple redraws occur in quick succession, then this can prevent
 flashing due to the screen clearing and redrawing.
+
+
+### g:image\_extmarks\_min\_cropped\_height
+
+Controls the minimum height (in lines) for which cropping images is
+allowed. The value 0 means any amount of crop is allowed.
+
+This can also be set to -1 to disable drawing cropped images entirely.
 
 
 ### g:image\_extmarks\_slow\_insert
@@ -417,11 +426,13 @@ before drawing sixel blobs.
 TODOs
 =====
 
-- Configurable limit for maximum number of ImageMagick subprocesses
 - Images crop to window width
-- Crop thresholds (e.g., do not attempt to crop, crop only at most n lines)
 - Reinstate hiding extmarks when cursor moves under them
+- Scrolling redraw timeout separate from other redraw timeouts
+  - "Cursor at the bottom/top" probably means the user is jumping around a lot
+  - Alternatively, top line of window moved is different from "new extmark in window"
 - Testing
+- Configurable limit for maximum number of ImageMagick subprocesses
 - Images can still get desynced from their position on screen
 - Hide text behind extmark with highlight
     - This is more difficult than it seems. 256-color terminals use `gui` highlights, which don't support `start=`/`stop=`

@@ -221,10 +221,27 @@ function window_drawing.get_visible_extmarks(dims)
   local buffer_id = vim.api.nvim_get_current_buf()
 
   return vim.tbl_map(function(extmark)
+    ---@type wrapped_extmark | nil
+    local ret
     if extmark[4].virt_lines ~= nil then
-      return virt_lines_extmark(extmark, dims, buffer_id)
+      ret = virt_lines_extmark(extmark, dims, buffer_id)
     else
-      return inline_extmark(extmark, dims, buffer_id, cursor_line)
+      ret = inline_extmark(extmark, dims, buffer_id, cursor_line)
+    end
+
+    if ret then
+      -- Is the image height drawable, as set by the user?
+      local crop_size = ret.crop_row_start + ret.crop_row_end
+      local image_height = ret.height - crop_size
+      if
+        image_height >= vim.g.image_extmarks_min_cropped_height
+        and not (
+          vim.g.image_extmarks_min_cropped_height < 0
+          and crop_size > 0
+        )
+      then
+        return ret
+      end
     end
   end, extmarks)
 end

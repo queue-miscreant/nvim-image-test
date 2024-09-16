@@ -16,6 +16,7 @@
 ---
 ---@field start_row integer
 ---@field height integer
+---@field max_width integer
 ---@field crop_row_start integer
 ---@field crop_row_end integer
 ---@field buffer_id integer
@@ -44,9 +45,10 @@
 ---@class window_dimensions Helper object accumulating window information for drawing
 ---
 ---@field height integer
+---@field width integer
 ---@field topline integer Top line of the buffer
 ---@field botline integer Bottom line of the buffer
 ---@field winrow integer Start row of the current tabpage
----@field wincol integer Start column of  the current tabpage
+---@field wincol integer Start column of the current tabpage
 ---@field textoff integer Sign/number column offset
 ---@field topfill integer Filler (extmark) lines included at the top of the window

@@ -19,11 +19,12 @@ local redraw_timer = nil
 ---@param window_id integer
 ---@param extmark wrapped_extmark
 local function extmark_cache_entry(window_id, extmark)
-  return ("%d.%d.%d.%d"):format(
+  return ("%d.%d.%d.%d.%d"):format(
     window_id,
     extmark.details.id,
     extmark.crop_row_start,
-    extmark.crop_row_end
+    extmark.crop_row_end,
+    extmark.max_width
   )
 end
 
@@ -34,7 +35,7 @@ end
 local function redraw(force, resized)
   -- Update the pixel height if this is a forced redraw
   if resized then
-    sixel_raw.fetch_height()
+    sixel_raw.fetch_dims()
   end
 
   local windows = vim.api.nvim_tabpage_list_wins(0)

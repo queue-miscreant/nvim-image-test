@@ -16,6 +16,8 @@ local sixel_raw = {
   tmux_session = nil,
   ---@type integer
   char_pixel_height = 0,
+  ---@type integer
+  char_pixel_width = 0,
   ---@type boolean
   screen_cleared = true,
   ---@type boolean
@@ -112,28 +114,29 @@ end
 -- Perform an ioctl operation and calculate the height of a character in pixels
 --
 ---@param fd integer The file descriptor to perform the operation on
----@return integer
-local function get_pixel_height(fd)
+---@return integer, integer
+local function get_pixel_dims(fd)
   local buf = ffi.new("struct winsize")
   ffi.C.ioctl(fd, TIOCGWINSZ, buf)
 
   if buf.ws_ypixel > 2 then
-    return math.floor(buf.ws_ypixel / buf.ws_row)
+    return math.floor(buf.ws_ypixel / buf.ws_row), math.floor(buf.ws_xpixel / buf.ws_col)
   end
-  return 0
+  return 0, 0
 end
 
 
--- Grab the terminal height, either naively on stdout, or by looking on parent terminals
-function sixel_raw.fetch_height()
+-- Grab the terminal dimensions, either naively on stdout, or by looking on parent terminals
+function sixel_raw.fetch_dims()
   if sixel_raw.tty == nil then
     sixel_raw.fetch_ttys()
   end
 
   -- Get height from stdout
-  local naive = get_pixel_height(1)
-  if naive ~= 0 then
-    sixel_raw.char_pixel_height = naive
+  local naive_height, naive_width = get_pixel_dims(1)
+  if naive_height ~= 0 then
+    sixel_raw.char_pixel_height = naive_height
+    sixel_raw.char_pixel_width = naive_width
     return
   end
 
@@ -147,10 +150,11 @@ function sixel_raw.fetch_height()
     local device = io.open(terminal)
     if device ~= nil then
       local fd = ffi.C.fileno(device)
-      local height = get_pixel_height(fd)
+      local height, width = get_pixel_dims(fd)
       device:close()
       if height ~= 0 then
         sixel_raw.char_pixel_height = height
+        sixel_raw.char_pixel_width = width
         return
       end
     end

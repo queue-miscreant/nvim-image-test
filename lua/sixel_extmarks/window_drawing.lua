@@ -25,6 +25,7 @@ local function get_windims()
 
   return {
     height = wininfo[1].height,
+    width = wininfo[1].width,
     topline = wininfo[1].topline,
     botline = wininfo[1].botline,
     winrow = wininfo[1].winrow,
@@ -106,6 +107,7 @@ local function inline_extmark(extmark, windims, buffer_id, cursor_line)
   return {
     start_row = start_row,
     height = height,
+    max_width = windims.width - windims.textoff,
     crop_row_start = crop_row_start,
     crop_row_end = crop_row_end,
     buffer_id = buffer_id,
@@ -192,6 +194,7 @@ local function virt_lines_extmark(extmark, windims, buffer_id)
   return {
     start_row = start_row,
     height = height - 1,
+    max_width = windims.width - windims.textoff,
     crop_row_start = crop_row_start,
     crop_row_end = crop_row_end,
     buffer_id = buffer_id,

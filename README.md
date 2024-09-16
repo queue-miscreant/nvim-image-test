@@ -426,7 +426,6 @@ before drawing sixel blobs.
 TODOs
 =====
 
-- Images crop to window width
 - Reinstate hiding extmarks when cursor moves under them
 - Scrolling redraw timeout separate from other redraw timeouts
   - "Cursor at the bottom/top" probably means the user is jumping around a lot

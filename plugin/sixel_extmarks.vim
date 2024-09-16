@@ -73,7 +73,7 @@ if exepath(g:image_extmarks_imagemagick_command) == ""
 endif
 
 " Minimum height of cropped images
-" 0 means all cropped images are valid, -1 means no cropped images are valid
+" 0 means all crops are valid, -1 means no crops images are valid
 let g:image_extmarks_min_cropped_height = get(g:, "image_extmarks_min_cropped_height", 0)
 
 " Import the module for the first time

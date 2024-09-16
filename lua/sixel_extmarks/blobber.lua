@@ -64,7 +64,7 @@ end
 ---@param extmark wrapped_extmark
 ---@return cache_id
 local function extmark_to_running_cache_id(extmark)
-  return ("%d,%d"):format(
+  return ("%d.%d"):format(
     extmark.buffer_id,
     extmark.details.id
   )
@@ -74,8 +74,9 @@ end
 ---@param extmark wrapped_extmark
 ---@return cache_id
 local function extmark_to_cache_id(extmark)
-  return ("%d,%d,%d"):format(
+  return ("%d.%d.%d.%d"):format(
     extmark.height,
+    extmark.max_width,
     extmark.crop_row_start,
     extmark.crop_row_end
   )
@@ -84,9 +85,10 @@ end
 
 ---@param index cache_id
 local function cache_id_to_table(index)
-  local height, crop_row_start, crop_row_end = index:match("(%d),(%d),(%d)")
+  local height, width, crop_row_start, crop_row_end = index:match("(%d),(%d),(%d),(%d)")
   return {
     height = height,
+    width = width,
     crop_row_start = crop_row_start,
     crop_row_end = crop_row_end
   }
@@ -106,7 +108,8 @@ function blobber.blobify(
   -- Resize to a suitable height
   local resize = ("x%d"):format(extmark.height * sixel_raw.char_pixel_height)
   -- Crop to the right size
-  local crop = ("x%d+0+%d"):format(
+  local crop = ("%dx%d+0+%d"):format(
+    extmark.max_width * sixel_raw.char_pixel_width,
     (extmark.height - extmark.crop_row_start - extmark.crop_row_end) * sixel_raw.char_pixel_height,
     extmark.crop_row_start * sixel_raw.char_pixel_height
   )

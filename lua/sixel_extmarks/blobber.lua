@@ -61,6 +61,8 @@ local function fire_pre_draw(extmarks)
 end
 
 
+-- Convert an extmark to a string to be used as a cache index (first layer, `blobber.running_cache`)
+--
 ---@param extmark wrapped_extmark
 ---@return cache_id
 local function extmark_to_running_cache_id(extmark)
@@ -71,6 +73,8 @@ local function extmark_to_running_cache_id(extmark)
 end
 
 
+-- Convert an extmark to a string to be used as a cache index (second layer)
+--
 ---@param extmark wrapped_extmark
 ---@return cache_id
 local function extmark_to_cache_id(extmark)
@@ -83,9 +87,11 @@ local function extmark_to_cache_id(extmark)
 end
 
 
+-- Reverse of `extmark_to_cache_id`
+--
 ---@param index cache_id
 local function cache_id_to_table(index)
-  local height, width, crop_row_start, crop_row_end = index:match("(%d),(%d),(%d),(%d)")
+  local height, width, crop_row_start, crop_row_end = index:match("(%d+).(%d+).(%d+).(%d+)")
   return {
     height = height,
     width = width,
@@ -133,7 +139,11 @@ function blobber.blobify(
   local sixel = {}
   stdout:read_start(function(err, data)
     assert(not err, err)
-    if data == nil then callback(extmark, table.concat(sixel, "")) return end
+    if data == nil then
+      stdout:close()
+      callback(extmark, table.concat(sixel, ""))
+      return
+    end
     table.insert(sixel, data)
   end)
 
@@ -141,7 +151,10 @@ function blobber.blobify(
   stderr:read_start(function(err, data)
     assert(not err, err)
     if data == nil then
-      if error_callback ~= nil then error_callback(extmark, table.concat(error_, "")) end
+      stderr:close()
+      if error_callback ~= nil then
+        error_callback(extmark, table.concat(error_, ""))
+      end
       return
     end
     table.insert(error_, data)
@@ -191,7 +204,7 @@ end
 function blobber.update_errors(extmark, error_, on_asynchronous_done)
   local index = extmark_to_cache_id(extmark)
   local path = extmark.path
-  local locations = blobber.running_cache[path][index]
+  local locations = blobber.running_cache[path][index] or {}
 
   if error_ == "" then
     pcall(function()
@@ -424,12 +437,20 @@ end
 
 
 function blobber.dump_cache()
-  return vim.tbl_map(
-    function(x)
-      return vim.tbl_map(cache_id_to_table, vim.tbl_keys(x))
-    end,
-    blobber.blob_cache
-  )
+  return vim.print{
+    blob_cache = vim.tbl_map(
+      function(x)
+        return vim.tbl_map(cache_id_to_table, vim.tbl_keys(x))
+      end,
+      blobber.blob_cache
+    ),
+    running_cache = vim.tbl_map(
+      function(x)
+        return vim.tbl_map(cache_id_to_table, vim.tbl_keys(x))
+      end,
+      blobber.running_cache
+    ),
+  }
 end
 
 

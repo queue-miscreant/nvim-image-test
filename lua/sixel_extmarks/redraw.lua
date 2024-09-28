@@ -81,8 +81,6 @@ local function redraw(force, resized)
   -- Nothing to draw, and not about to draw
   elseif new_count == 0 then
     return
-  -- elseif redraw_timer == nil then
-  --   timer = 0
   end
 
   -- Update the queued extmarks for future redraws

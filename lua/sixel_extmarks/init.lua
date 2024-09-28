@@ -111,6 +111,17 @@ local function bind_local_autocmds()
 end
 
 
+-- Remove autocommands which depend on buffer contents
+--
+local function unbind_local_autocmds()
+  vim.api.nvim_clear_autocmds{
+    event = { "TextChanged", "TextChangedI", "InsertEnter", "InsertLeave" },
+    buffer = vim.api.nvim_get_current_buf(),
+    group = "ImageExtmarks",
+  }
+end
+
+
 -- Create a new image extmark in the current buffer.
 --
 ---@param start_row integer The (0-indexed) row of the buffer that the image begins on
@@ -201,6 +212,7 @@ function sixel_extmarks.remove(id)
   local ret = interface.remove_image_extmark(id)
   sixel_extmarks.redraw()
 
+  unbind_local_autocmds()
   return ret
 end
 
@@ -213,6 +225,9 @@ function sixel_extmarks.remove_all()
   local ret = interface.remove_images()
   sixel_extmarks.redraw()
 
+  if #(vim.t.image_extmarks_queued or {}) == 0 then
+    unbind_local_autocmds()
+  end
   return ret
 end
 
@@ -366,7 +381,11 @@ vim.api.nvim_create_autocmd(
   },
   {
     group = "ImageExtmarks",
-    callback = function() redraw(true, true) end
+    callback = function()
+      if not sixel_raw.no_resize then
+        redraw(true, true)
+      end
+    end
   }
 )
 

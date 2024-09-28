@@ -22,8 +22,11 @@ local sixel_raw = {
   screen_cleared = true,
   ---@type boolean
   drawing_enabled = true,
+  ---@type boolean
+  no_resize = false,
 }
 
+local REDRAW_TIMEOUT_MS = 1000
 local TIOCGWINSZ = vim.g.image_extmarks_TIOCGWINSZ
 if TIOCGWINSZ == nil then
   -- This is the default value in Linux (and other kernels),
@@ -223,6 +226,8 @@ function sixel_raw.clear_screen()
   vim.cmd("mode")
   -- clear tmux with tmux detach -E "tmux attach -t (session number)"
   if sixel_raw.tmux_session ~= nil then
+    sixel_raw.no_resize = true
+    vim.defer_fn(function() sixel_raw.no_resize = false end, REDRAW_TIMEOUT_MS)
     vim.fn.system(("tmux detach -E 'tmux attach -t %s'"):format(sixel_raw.tmux_session))
   end
   sixel_raw.screen_cleared = true

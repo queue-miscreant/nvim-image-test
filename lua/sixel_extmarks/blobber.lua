@@ -17,6 +17,7 @@
 -- If the cache entry is nil, then no process is currently generating that blob
 -- If the cache entry is {}, then a runner is generating the blob, but no positions will be drawn with it
 
+local config = require "sixel_extmarks.config"
 local sixel_raw = require "sixel_extmarks.sixel_raw"
 local interface = require "sixel_extmarks.interface"
 
@@ -123,7 +124,7 @@ function blobber.blobify(
   local stdout = loop.new_pipe()
   local stderr = loop.new_pipe()
   -- Run ImageMagick command
-  loop.spawn(vim.g.image_extmarks_imagemagick_command, {
+  loop.spawn(config.imagemagick_command, {
     args = {
       extmark.path .. "[0]",
       "-resize",

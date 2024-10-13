@@ -6,6 +6,7 @@ local interface = require "sixel_extmarks.interface"
 local sixel_raw = require "sixel_extmarks.sixel_raw"
 local blobber = require "sixel_extmarks.blobber"
 local redraw = require "sixel_extmarks.redraw"
+local config = require "sixel_extmarks.config"
 
 -- Namespace for plugin functions
 local sixel_extmarks = {}
@@ -74,7 +75,7 @@ local function bind_local_autocmds()
     group = "ImageExtmarks",
     buffer = 0,
     callback = function()
-      if not vim.g.image_extmarks_slow_insert then
+      if not config.slow_insert then
         return
       end
 
@@ -87,7 +88,7 @@ local function bind_local_autocmds()
     group = "ImageExtmarks",
     buffer = 0,
     callback = function()
-      if not vim.g.image_extmarks_slow_insert then
+      if not config.slow_insert then
         return
       end
 
@@ -96,14 +97,9 @@ local function bind_local_autocmds()
   })
 
   -- Rebind fold keys
-  local ignore_fold_remaps = vim.g.image_extmarks_ignore_fold_remaps
-  if type(ignore_fold_remaps) == "table" then
-    bind_fold_keys(ignore_fold_remaps)
-  elseif
-    ignore_fold_remaps == 0
-    or ignore_fold_remaps == nil
-    or ignore_fold_remaps == false
-  then
+  if type(config.ignore_fold_remaps) == "table" then
+    bind_fold_keys(config.ignore_fold_remaps)
+  elseif not config.ignore_fold_remaps then
     bind_fold_keys({})
   end
 
@@ -154,7 +150,7 @@ end
 ---@return integer
 function sixel_extmarks.create_virtual(start_row, height, path)
   local id = interface.create_image_virtual(start_row, height, path)
-  if vim.g.image_extmarks_allow_virtual == 0 then
+  if config.allow_virtual == 0 then
     vim.notify("Virtual extmarks are only supported on nvim >=0.10", vim.log.levels.ERROR)
   end
 
@@ -326,107 +322,111 @@ function sixel_extmarks.dump_blob_cache()
 end
 
 
-vim.api.nvim_create_user_command(
-  'CreateImage',
-  function(opts)
-    sixel_extmarks.create(
-      opts.line1 - 1,
-      opts.line2 - 1,
-      opts.args
-    )
-  end,
-  { nargs = 1, range = 2, complete = "file" }
-)
+function sixel_extmarks.setup(opts)
+  config.load_globals(opts)
 
-vim.api.nvim_create_augroup("ImageExtmarks", { clear = false })
-vim.api.nvim_create_augroup("ImageExtmarks#pre_draw", { clear = false })
+  vim.api.nvim_create_user_command(
+    'CreateImage',
+    function(params)
+      sixel_extmarks.create(
+        params.line1 - 1,
+        params.line2 - 1,
+        params.args
+      )
+    end,
+    { nargs = 1, range = 2, complete = "file" }
+  )
 
-vim.api.nvim_create_autocmd(
-  "WinScrolled",
-  {
-    group = "ImageExtmarks",
-    callback = function() sixel_extmarks.redraw() end
-  }
-)
+  vim.api.nvim_create_augroup("ImageExtmarks", { clear = false })
+  vim.api.nvim_create_augroup("ImageExtmarks#pre_draw", { clear = false })
 
--- Only add WinResized if neovim supports it
-if pcall(function() vim.api.nvim_get_autocmds{ event = "WinResized" } end) then
   vim.api.nvim_create_autocmd(
-    "WinResized",
+    "WinScrolled",
+    {
+      group = "ImageExtmarks",
+      callback = function() sixel_extmarks.redraw() end
+    }
+  )
+
+  -- Only add WinResized if neovim supports it
+  if pcall(function() vim.api.nvim_get_autocmds{ event = "WinResized" } end) then
+    vim.api.nvim_create_autocmd(
+      "WinResized",
+      {
+        group = "ImageExtmarks",
+        callback = function()
+          local total = 0
+          for _, win in pairs(vim.v.event.windows) do
+            total = total + #vim.api.nvim_buf_get_extmarks(
+              vim.api.nvim_win_get_buf(win),
+              interface.namespace,
+              0,
+              -1,
+              {}
+            )
+          end
+          if total > 0 then
+            sixel_extmarks.redraw(true)
+          end
+        end
+      }
+    )
+  end
+
+  vim.api.nvim_create_autocmd(
+    {
+      "VimEnter",
+      "VimResized",
+    },
     {
       group = "ImageExtmarks",
       callback = function()
-        local total = 0
-        for _, win in pairs(vim.v.event.windows) do
-          total = total + #vim.api.nvim_buf_get_extmarks(
-            vim.api.nvim_win_get_buf(win),
-            interface.namespace,
-            0,
-            -1,
-            {}
-          )
-        end
-        if total > 0 then
-          sixel_extmarks.redraw(true)
+        if not sixel_raw.no_resize then
+          redraw(true, true)
         end
       end
     }
   )
+
+  -- Vim quirk: attempting to redraw at TabEnter after TabNew will use the
+  -- previous buffer (but the new window), since BufEnter has not happened yet
+  --
+  -- So don't bother redrawing a new tab is created
+  vim.api.nvim_create_autocmd(
+    "TabNew",
+    {
+      group = "ImageExtmarks",
+      callback = function() creating_tab = true end
+    }
+  )
+  vim.api.nvim_create_autocmd(
+    {
+      "TabEnter",
+      "TabClosed"
+    },
+    {
+      group = "ImageExtmarks",
+      callback = function()
+        if creating_tab then
+          creating_tab = false
+          return
+        end
+
+        sixel_extmarks.redraw(true)
+      end
+    }
+  )
+
+  vim.api.nvim_create_autocmd(
+    {
+      "TabLeave",
+      "ExitPre"
+    },
+    {
+      group = "ImageExtmarks",
+      callback = function() sixel_extmarks.clear_screen() end
+    }
+  )
 end
-
-vim.api.nvim_create_autocmd(
-  {
-    "VimEnter",
-    "VimResized",
-  },
-  {
-    group = "ImageExtmarks",
-    callback = function()
-      if not sixel_raw.no_resize then
-        redraw(true, true)
-      end
-    end
-  }
-)
-
--- Vim quirk: attempting to redraw at TabEnter after TabNew will use the
--- previous buffer (but the new window), since BufEnter has not happened yet
---
--- So don't bother redrawing a new tab is created
-vim.api.nvim_create_autocmd(
-  "TabNew",
-  {
-    group = "ImageExtmarks",
-    callback = function() creating_tab = true end
-  }
-)
-vim.api.nvim_create_autocmd(
-  {
-    "TabEnter",
-    "TabClosed"
-  },
-  {
-    group = "ImageExtmarks",
-    callback = function()
-      if creating_tab then
-        creating_tab = false
-        return
-      end
-
-      sixel_extmarks.redraw(true)
-    end
-  }
-)
-
-vim.api.nvim_create_autocmd(
-  {
-    "TabLeave",
-    "ExitPre"
-  },
-  {
-    group = "ImageExtmarks",
-    callback = function() sixel_extmarks.clear_screen() end
-  }
-)
 
 return sixel_extmarks

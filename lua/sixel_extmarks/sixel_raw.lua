@@ -4,6 +4,7 @@
 -- clearing the screen safely, and getting the character height for drawing.
 
 local ffi = require "ffi"
+local config = require "sixel_extmarks.config"
 
 local sixel_raw = {
   ---@type string|nil
@@ -27,12 +28,6 @@ local sixel_raw = {
 }
 
 local REDRAW_TIMEOUT_MS = 1000
-local TIOCGWINSZ = vim.g.image_extmarks_TIOCGWINSZ
-if TIOCGWINSZ == nil then
-  -- This is the default value in Linux (and other kernels),
-  -- but can also be derived from the Python installation
-  TIOCGWINSZ =  0x5413
-end
 
 -- ioctl definition
 ffi.cdef [[
@@ -106,7 +101,7 @@ function sixel_raw.fetch_ttys()
   sixel_raw.tmux_session = tmux_session
 
   -- Option turned off
-  if vim.g.image_extmarks_parent_tty_magic == 0 then
+  if config.parent_tty_magic == 0 then
     return
   end
   -- Find parent terminals
@@ -120,7 +115,7 @@ end
 ---@return integer, integer
 local function get_pixel_dims(fd)
   local buf = ffi.new("struct winsize")
-  ffi.C.ioctl(fd, TIOCGWINSZ, buf)
+  ffi.C.ioctl(fd, config.TIOCGWINSZ, buf)
 
   if buf.ws_ypixel > 2 then
     return math.floor(buf.ws_ypixel / buf.ws_row), math.floor(buf.ws_xpixel / buf.ws_col)

@@ -2,6 +2,7 @@
 --
 -- Gather information about current extmark positions, relative to the current window.
 
+local config = require "sixel_extmarks.config"
 local interface = require "sixel_extmarks.interface"
 
 local window_drawing = {}
@@ -237,9 +238,9 @@ function window_drawing.get_visible_extmarks(dims)
       local crop_size = ret.crop_row_start + ret.crop_row_end
       local image_height = ret.height - crop_size
       if
-        image_height >= vim.g.image_extmarks_min_cropped_height
+        image_height >= config.min_cropped_height
         and not (
-          vim.g.image_extmarks_min_cropped_height < 0
+          config.min_cropped_height < 0
           and crop_size > 0
         )
       then

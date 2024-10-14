@@ -124,10 +124,40 @@ local function get_pixel_dims(fd)
 end
 
 
+-- Get ioctl value from Python
+local function fetch_ioctl_magic()
+  local tiocgwinsz
+  if vim.fn.has("pythonx") then
+    tiocgwinsz = tonumber(
+      (
+        vim.fn.execute [[python import termios; print(termios.TIOCGWINSZ)]]
+      ):gsub("\n", ""), nil
+    )
+  elseif vim.fn.exepath("python") then
+    tiocgwinsz = tonumber(
+      (
+        vim.fn.system("python -c 'import termios; print(termios.TIOCGWINSZ)'")
+      ):gsub("\n", ""), nil
+    )
+  end
+
+  if tiocgwinsz == nil then
+    vim.notify(
+      "nvim-image-extmarks: Failed to get value from ioctl magic!",
+      vim.log.levels.WARN
+    )
+  end
+  config.TIOCGWINSZ = tiocgwinsz
+end
+
+
 -- Grab the terminal dimensions, either naively on stdout, or by looking on parent terminals
 function sixel_raw.fetch_dims()
   if sixel_raw.tty == nil then
     sixel_raw.fetch_ttys()
+  end
+  if config.TIOCGWINSZ == nil and config.ioctl_magic then
+    fetch_ioctl_magic()
   end
 
   -- Get height from stdout

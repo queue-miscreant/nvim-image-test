@@ -323,6 +323,10 @@ end
 
 
 function sixel_extmarks.setup(opts)
+  if vim.fn.exepath("tty") == "" then
+    vim.notify("nvim-image-extmarks: Command `tty` not found. Cannot run plugin.", vim.log.levels.ERROR)
+    return
+  end
   config.load_globals(opts)
 
   vim.api.nvim_create_user_command(

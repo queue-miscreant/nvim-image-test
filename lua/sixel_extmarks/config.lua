@@ -42,29 +42,9 @@ function config.load_globals(opts)
     end
   end
 
-  -- Get ioctl value from Python
+  -- Unset this so config can fetch it later
   if config.ioctl_magic then
-    local tiocgwinsz
-    if vim.fn.has("pythonx") then
-      tiocgwinsz = tonumber(
-        (
-          vim.fn.execute [[python import termios; print(termios.TIOCGWINSZ)]]
-        ):gsub("\n", ""), nil
-      )
-    elseif vim.fn.exepath("python") then
-      tiocgwinsz = tonumber(
-        (
-          vim.fn.system("python -c 'import termios; print(termios.TIOCGWINSZ)'")
-        ):gsub("\n", ""), nil
-      )
-    end
-
-    if tiocgwinsz == nil then
-      vim.notify(
-        "nvim-image-extmarks: Failed to get value from ioctl magic!",
-        vim.log.levels.WARN
-      )
-    end
+    config.TIOCGWINSZ = nil
   end
 
   -- Make sure the commands are actually there for magic

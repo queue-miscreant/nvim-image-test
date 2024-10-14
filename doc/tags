@@ -21,6 +21,14 @@ sixel_extmarks-functions	sixel_extmarks.txt	/*sixel_extmarks-functions*
 sixel_extmarks.change_content	sixel_extmarks.txt	/*sixel_extmarks.change_content*
 sixel_extmarks.clear_cache	sixel_extmarks.txt	/*sixel_extmarks.clear_cache*
 sixel_extmarks.clear_screen	sixel_extmarks.txt	/*sixel_extmarks.clear_screen*
+sixel_extmarks.config.TIOCGWINSZ	sixel_extmarks.txt	/*sixel_extmarks.config.TIOCGWINSZ*
+sixel_extmarks.config.buffer_ms	sixel_extmarks.txt	/*sixel_extmarks.config.buffer_ms*
+sixel_extmarks.config.disable_fold_remaps	sixel_extmarks.txt	/*sixel_extmarks.config.disable_fold_remaps*
+sixel_extmarks.config.imagemagick_command	sixel_extmarks.txt	/*sixel_extmarks.config.imagemagick_command*
+sixel_extmarks.config.ioctl_magic	sixel_extmarks.txt	/*sixel_extmarks.config.ioctl_magic*
+sixel_extmarks.config.min_cropped_height	sixel_extmarks.txt	/*sixel_extmarks.config.min_cropped_height*
+sixel_extmarks.config.parent_tty_magic	sixel_extmarks.txt	/*sixel_extmarks.config.parent_tty_magic*
+sixel_extmarks.config.slow_insert	sixel_extmarks.txt	/*sixel_extmarks.config.slow_insert*
 sixel_extmarks.create	sixel_extmarks.txt	/*sixel_extmarks.create*
 sixel_extmarks.create_virtual	sixel_extmarks.txt	/*sixel_extmarks.create_virtual*
 sixel_extmarks.disable_drawing	sixel_extmarks.txt	/*sixel_extmarks.disable_drawing*

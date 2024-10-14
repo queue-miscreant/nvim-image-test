@@ -59,7 +59,7 @@ processes in addition to the one on standard output.
 It does this by running `pstree` and `ps`.
 
 This behavior can be disabled by setting
-|g:image_extmarks_parent_tty_magic| to 0.
+|sixel_extmarks.config.parent_tty_magic| to `false`.
 
 
 --------------------------------------------------------------------------------
@@ -244,14 +244,23 @@ sixel_extmarks.dump_blob_cache()
 --------------------------------------------------------------------------------
 CONFIGURATION                                           *nvim-image-extmarks-configuration*
 
-g:image_extmarks_imagemagick_command                    *g:image_extmarks_imagemagick_command*
+The following configuration options may be specified in your lazy.nvim.
+
+They may also be configured from Vim globals (|g:|) in your Vim init script.
+As Vim globals, the names are prefixed with `image_extmarks_`.
+If the Vim globals are changed, they will NOT take effect without either
+restarting or setting up the plugin again.
+
+imagemagick_command                                     *sixel_extmarks.config.imagemagick_command*
+                                                        *g:image_extmarks_imagemagick_command*
 
         Specifies the name of the command for invoking ImageMagick.
 
         Defaults to `magick`, or to `convert` if that command doesn't exist.
 
 
-g:image_extmarks_buffer_ms                              *g:image_extmarks_buffer_ms*
+buffer_ms                                               *sixel_extmarks.config.buffer_ms*
+                                                        *g:image_extmarks_buffer_ms*
 
         Controls the amount of delay, in milliseconds, between the screen
         being cleared and extmarks being redrawn. If multiple redraws occur in
@@ -259,14 +268,16 @@ g:image_extmarks_buffer_ms                              *g:image_extmarks_buffer
         clearing and redrawing.
 
 
-g:image_extmarks_min_cropped_height                     *g:image_extmarks_min_cropped_height*
+min_cropped_height                                      *sixel_extmarks.config.min_cropped_height*
+                                                        *g:image_extmarks_min_cropped_height*
 
         Controls the minimum height (in lines) for which cropping images is
         allowed. The value 0 means any amount of crop is allowed.
         This can also be set to -1 to disable drawing cropped images entirely.
 
 
-g:image_extmarks_slow_insert                            *g:image_extmarks_slow_insert*
+slow_insert                                             *sixel_extmarks.config.slow_insert*
+                                                        *g:image_extmarks_slow_insert*
 
         Activates "slow" insert mode.
 
@@ -275,7 +286,8 @@ g:image_extmarks_slow_insert                            *g:image_extmarks_slow_i
         redraw is invoked upon exiting insert mode.
 
 
-g:image_extmarks_disable_fold_remaps                    *g:image_extmarks_disable_fold_remaps*
+disable_fold_remaps                                     *sixel_extmarks.config.disable_fold_remaps*
+                                                        *g:image_extmarks_disable_fold_remaps*
 
         Disables remapping keys which interact with folds to also force
         images to redraw.
@@ -287,26 +299,29 @@ g:image_extmarks_disable_fold_remaps                    *g:image_extmarks_disabl
         NOT remap.
 
 
-g:image_extmarks_parent_tty_magic                       *g:image_extmarks_parent_tty_magic*
+parent_tty_magic                                        *sixel_extmarks.config.parent_tty_magic*
+                                                        *g:image_extmarks_parent_tty_magic*
 
         Enables fetching character sizes from terminals of parent processes.
         Defaults to 1 (true).
 
 
-g:image_extmarks_ioctl_magic                            *g:image_extmarks_ioctl_magic*
+ioctl_magic                                             *sixel_extmarks.config.ioctl_magic*
+                                                        *g:image_extmarks_ioctl_magic*
 
         Enables fetching the ioctl for TIOCGWINSZ from Python. Defaults to 1
         (true).
 
-        If disabled and |g:image_extmarks_TIOCGWINSZ| is not manually set,
-        TIOCGWINSZ will fall back to 0x5413, its value on Linux.
 
-
-g:image_extmarks_TIOCGWINSZ                             *g:image_extmarks_TIOCGWINSZ*
+ TIOCGWINSZ                                             *sixel_extmarks.config.TIOCGWINSZ*
+                                                        *g:image_extmarks_TIOCGWINSZ*
 
         The number corresponding to the TIOCGWINSZ ioctl.
-        If |g:image_extmarks_ioctl_magic| is 1, then this variable is set
+        If |sixel_extmarks.config.ioctl_magic| is `true`, then this variable is set
         automatically. Otherwise, it can be specified by the user.
+
+        If `ioctl_magic` is disabled and `TIOCGWINSZ` is not manually set,
+        TIOCGWINSZ will fall back to 0x5413, its value on Linux.
 
 
 --------------------------------------------------------------------------------
@@ -319,7 +334,7 @@ These include:
 - |TextChanged|, |TextChangedI|, |CursorMoved| (Buffer-local)
     - Attempt to redraw, if necessary
 - |InsertEnter|, |InsertLeave| (Buffer-local)
-    - See |g:image_extmarks_slow_insert|
+    - See |sixel_extmarks.config.slow_insert|
 - |TabClosed|
     - Attempt to redraw, if necessary
 - |VimEnter|, |VimResized|, |TabEnter|
@@ -356,7 +371,7 @@ To get around this, the default commands which interact with folding (those
 which start with z) are remapped to perform their normal action AND call the
 redraw function. These maps are buffer-local and are added along with the
 buffer-local autocmds above.
-See |g:image_extmarks_disable_fold_remaps| for controlling this.
+See |sixel_extmarks.config.disable_fold_remaps| for controlling this.
 
                                                 *nvim-sixel-extmarks-Ex-command*
 

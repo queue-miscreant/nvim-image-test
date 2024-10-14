@@ -34,12 +34,29 @@ Requirements
 Installation
 ------------
 
+### lazy.nvim
+
+Use the following LazySpec:
+
+```lua
+{
+  "queue-miscreant/neovimpv",
+  opts = {
+    -- Configuration goes here
+  },
+}
+```
+See the next section for configuration.
+
+
 ### Vundle
 
 Place the following in `~/.config/nvim/init.vim`:
 ```vim
 Plugin 'queue-miscreant/nvim_image_extmarks'
+
 ```
+
 Make sure the file is sourced and run `:PluginInstall`.
 
 
@@ -99,7 +116,7 @@ To get around this, the plugin can attempt to query the terminals of
 the parent processes in addition to the one on standard output.
 It does this by running `pstree` and `ps`.
 
-This behavior can be disabled by setting `g:image_extmarks_parent_tty_magic` to 0.
+This behavior can be disabled by setting `parent_tty_magic` to 0.
 
 
 Similar Projects
@@ -332,14 +349,22 @@ a table with filenames as keys and buffer ranges as values.
 Configuration
 -------------
 
-### g:image\_extmarks\_imagemagick\_command
+The following configuration options may be specified in your lazy.nvim.
+
+They may also be configured from Vim globals (|g:|) in your Vim init script.
+As Vim globals, the names are prefixed with `image_extmarks_`.
+If the Vim globals are changed, they will NOT take effect without either
+restarting or setting up the plugin again.
+
+
+### imagemagick\_command
 
 Specifies the name of the command for invoking ImageMagick.
 
-Defaults to `magick`, or to `convert` if that command doesn't exist.
+Defaults to "magick", or to "convert" if that command doesn't exist.
 
 
-### g:image\_extmarks\_buffer\_ms
+### buffer\_ms
 
 Controls the amount of delay, in milliseconds, between the screen being cleared
 and extmarks being redrawn.
@@ -348,7 +373,7 @@ If multiple redraws occur in quick succession, then this can prevent
 flashing due to the screen clearing and redrawing.
 
 
-### g:image\_extmarks\_min\_cropped\_height
+### min\_cropped\_height
 
 Controls the minimum height (in lines) for which cropping images is
 allowed. The value 0 means any amount of crop is allowed.
@@ -356,7 +381,7 @@ allowed. The value 0 means any amount of crop is allowed.
 This can also be set to -1 to disable drawing cropped images entirely.
 
 
-### g:image\_extmarks\_slow\_insert
+### slow\_insert
 
 Activates "slow" insert mode.
 
@@ -365,35 +390,34 @@ disabled when entering insert mode and a redraw is invoked upon exiting insert
 mode.
 
 
-### g:image\_extmarks\_disable\_fold\_remaps
+### disable\_fold\_remaps
 
 Disables remapping keys which interact with folds to also force images to redraw.
-This can be a boolean (i.e., 0 or 1) or a list.
+This can be a boolean or a list.
 
-If a truthy boolean, no remaps will take place.
+If `true`, no remaps will take place.
 
 If a list, then the entries will be interpreted as maps (such as "zf") to
 _not_ remap.
 
-### g:image\_extmarks\_parent\_tty\_magic
+### parent\_tty\_magic
 
 Enables fetching character sizes from terminals of parent processes.
-Defaults to 1 (true).
+Defaults to true.
 
 
-### g:image\_extmarks\_ioctl\_magic
+### ioctl\_magic
 
-Enables fetching the ioctl for TIOCGWINSZ from Python. Defaults to 1
-(true).
+Enables fetching the ioctl for TIOCGWINSZ from Python. Defaults to true.
 
-If disabled and `g:image_extmarks_TIOCGWINSZ` is not manually set,
+If disabled and `TIOCGWINSZ` is not manually set,
 TIOCGWINSZ will fall back to 0x5413, its value on Linux.
 
 
-### g:image\_extmarks\_TIOCGWINSZ
+### TIOCGWINSZ
 
 The number corresponding to the TIOCGWINSZ ioctl.
-If `g:image_extmarks_ioctl_magic` is 1, then this variable is set
+If `ioctl_magic` is true, then this variable is set
 automatically. Otherwise, it can be specified by the user.
 
 
@@ -410,7 +434,7 @@ These include:
 - `TabLeave`, `ExitPre`
     - Clear the screen of all sixel images
 - `InsertEnter`, `InsertLeave`
-    - See `g:image_extmarks_slow_insert`
+    - See `slow_insert`
 
 These attempt to replicate the feel of normal text extmarks without extra
 configuration. They can be overridden or unbound at your leisure using

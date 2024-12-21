@@ -22,6 +22,9 @@ local default_config = {
 
   -- Disable drawing after entering insert mode
   slow_insert = false,
+
+  -- Do not automatically clear the screen inside tmux
+  tmux_detach_clears = false,
 }
 
 -- Configuration settings which can be partially updated from user config

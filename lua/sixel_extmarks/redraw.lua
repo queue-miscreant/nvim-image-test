@@ -8,9 +8,7 @@ local sixel_raw = require "sixel_extmarks.sixel_raw"
 local blobber = require "sixel_extmarks.blobber"
 local window_drawing = require "sixel_extmarks.window_drawing"
 
-local loop = vim.uv
-if loop == nil then loop = vim.loop end
-
+local loop = vim.uv or vim.loop
 local redraw_timer = nil
 
 -- Format extmark parameters which influence sixel data.

@@ -25,7 +25,7 @@ local function bind_normal_redraw(lhs)
       if not successful and str ~= nil then
         vim.notify(str:sub(("Vim(normal):"):len() + 1), vim.log.levels.ERROR)
       end
-      sixel_extmarks.redraw(true)
+      redraw(true, false)
     end,
     { buffer = true }
   )
@@ -68,7 +68,7 @@ local function bind_local_autocmds()
   vim.api.nvim_create_autocmd({ "TextChanged", "TextChangedI" }, {
     group = "ImageExtmarks",
     buffer = 0,
-    callback = function() sixel_extmarks.redraw() end
+    callback = function() redraw(false, false) end
   })
 
   vim.api.nvim_create_autocmd("InsertEnter", {
@@ -136,7 +136,7 @@ function sixel_extmarks.create(start_row, end_row, path)
     bind_local_autocmds()
   end
 
-  sixel_extmarks.redraw()
+  redraw(false, false)
 
   return id
 end
@@ -163,7 +163,7 @@ function sixel_extmarks.create_virtual(start_row, height, path)
     bind_local_autocmds()
   end
 
-  sixel_extmarks.redraw()
+  redraw(false, false)
 
   return id
 end
@@ -206,7 +206,7 @@ end
 ---@param id integer The id of the extmark to remove
 function sixel_extmarks.remove(id)
   local ret = interface.remove_image_extmark(id)
-  sixel_extmarks.redraw()
+  redraw(false, false)
 
   unbind_local_autocmds()
   return ret
@@ -219,7 +219,7 @@ end
 ---@see sixel_extmarks.remove
 function sixel_extmarks.remove_all()
   local ret = interface.remove_images()
-  sixel_extmarks.redraw()
+  redraw(false, false)
 
   if #(vim.t.image_extmarks_queued or {}) == 0 then
     unbind_local_autocmds()
@@ -238,7 +238,7 @@ end
 ---@param end_row? integer
 function sixel_extmarks.move(id, start_row, end_row)
   local ret = interface.move_extmark(id, start_row, end_row)
-  sixel_extmarks.redraw()
+  redraw(false, false)
 
   return ret
 end
@@ -251,7 +251,7 @@ end
 function sixel_extmarks.change_content(id, path)
   local ret = interface.change_extmark_content(id, path)
   -- After changing content, the screen must be cleared anyway
-  sixel_extmarks.redraw(true)
+  redraw(true, false)
 
   return ret
 end
@@ -289,7 +289,7 @@ end
 ---@param error_text string The error text to display
 function sixel_extmarks.set_extmark_error(id, error_text)
   interface.set_extmark_error(id, error_text)
-  sixel_extmarks.redraw()
+  redraw(false, false)
 end
 
 
@@ -308,7 +308,7 @@ end
 function sixel_extmarks.enable_drawing(redraw_after)
   sixel_raw.enable_drawing()
   if redraw_after == nil or redraw_after then
-    sixel_extmarks.redraw(true)
+    redraw(true, false)
   end
 end
 
@@ -341,6 +341,23 @@ function sixel_extmarks.setup(opts)
     { nargs = 1, range = 2, complete = "file" }
   )
 
+  vim.api.nvim_create_user_command(
+    'SixelRedraw',
+    function()
+      sixel_raw.clear_screen(true)
+      redraw(true, true)
+    end,
+    { nargs = 0 }
+  )
+
+  vim.api.nvim_create_user_command(
+    'SixelClear',
+    function()
+      sixel_raw.clear_screen(true)
+    end,
+    { nargs = 0 }
+  )
+
   vim.api.nvim_create_augroup("ImageExtmarks", { clear = false })
   vim.api.nvim_create_augroup("ImageExtmarks#pre_draw", { clear = false })
 
@@ -348,7 +365,7 @@ function sixel_extmarks.setup(opts)
     "WinScrolled",
     {
       group = "ImageExtmarks",
-      callback = function() sixel_extmarks.redraw() end
+      callback = function() redraw(false, false) end
     }
   )
 
@@ -370,7 +387,7 @@ function sixel_extmarks.setup(opts)
             )
           end
           if total > 0 then
-            sixel_extmarks.redraw(true)
+            redraw(true, true)
           end
         end
       }
@@ -416,7 +433,7 @@ function sixel_extmarks.setup(opts)
           return
         end
 
-        sixel_extmarks.redraw(true)
+        redraw(true, false)
       end
     }
   )

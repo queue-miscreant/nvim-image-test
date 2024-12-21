@@ -40,7 +40,7 @@ Use the following LazySpec:
 
 ```lua
 {
-  "queue-miscreant/neovimpv",
+  "queue-miscreant/nvim_image_extmarks",
   opts = {
     -- Configuration goes here
   },
@@ -102,6 +102,8 @@ With enough delay, this produces visible artifacts, including:
     - boxes of "+" characters where the images would be displayed
     - sixel binary content, which appears as random ASCII characters
 
+This behavior can be enabled with `tmux_detach_clears`.
+
 
 ### Layered Terminals
 
@@ -143,6 +145,18 @@ Commands
 
 Create an image extmark with the given filename at the range
 specified. This wraps `sixel_extmarks.create` below.
+
+
+### `:SixelRedraw`
+
+Redraw all sixel images present in the current tabpage.
+This wraps `sixel_extmarks.redraw` below.
+
+
+### `:SixelClear`
+
+Clear all sixel images from the current tabpage.
+This wraps `sixel_extmarks.clear_screen` below.
 
 
 Lua Functions
@@ -195,14 +209,14 @@ To get all extmarks, set `start_row` to 0 and `end_row` to -1.
 
 The return value is a list of tables with the following structure:
 
-| Field       | Type    | Description                                                                                                   |
-|-------------|---------|---------------------------------------------------------------------------------------------------------------|
-| `id`        | integer | The id of the extmark                                                                                         |
-| `start_row` | integer | The (0-indexed) line that the extmark starts on                                                               |
-| `type`      | string  | "inline" if the extmark was created with `create`. "virtual" if the extmark was created with `create_virtual` |
-| `end_row`   | integer | The (0-indexed) line that the extmark ends on. Unset unless `type` is "inline".                               |
-| `height`    | integer | The height of the extmark, in rows. Unset unless `type` is "virtual".                                         |
-| `path`      | string  | A path to the current content                                                                                 |
+| Field     | Type    | Description                                                                                                   |
+|-----------|---------|---------------------------------------------------------------------------------------------------------------|
+| id        | integer | The id of the extmark                                                                                         |
+| start_row | integer | The (0-indexed) line that the extmark starts on                                                               |
+| type      | string  | "inline" if the extmark was created with `create`. "virtual" if the extmark was created with `create_virtual` |
+| end_row   | integer | The (0-indexed) line that the extmark ends on. Unset unless `type` is "inline".                               |
+| height    | integer | The height of the extmark, in rows. Unset unless `type` is "virtual".                                         |
+| path      | string  | A path to the current content                                                                                 |
 
 
 ### sixel\_extmarks.get\_by\_id
@@ -400,10 +414,20 @@ If `true`, no remaps will take place.
 If a list, then the entries will be interpreted as maps (such as "zf") to
 _not_ remap.
 
+
 ### parent\_tty\_magic
 
 Enables fetching character sizes from terminals of parent processes.
 Defaults to true.
+
+
+### tmux\_detach\_clears
+
+Whether or to detach and reattach to the tmux session to clear images.
+If true, this may cause excessive "flashing" behavior due to delay between
+detatching and reattaching to the tmux session.
+If not inside tmux, this option does nothing.
+Defaults to 0 (false).
 
 
 ### ioctl\_magic

@@ -37,12 +37,14 @@ As of writing this documentation, tmux, the terminal multiplexer, newly
 supports sixel content. However, if you experiment with this feature on your
 own, you may find that sixels are "sticky" between panes and windows.
 
-To get around this, when clearing the screen, the plugin will attempt to
+To get around this, when clearing the screen, the plugin has an option to
 "refresh" the content in the session by quickly detaching and attaching.
 With enough delay, this produces visible artifacts, including:
 
     - boxes of "+" characters where the images would be displayed
     - sixel binary content, which appears as random ASCII characters
+
+This behavior can be enabled with |sixel_extmarks.config.tmux_detach_clears|.
 
 
 LAYERED TERMINALS                                       *nvim-image-extmarks-ttys*
@@ -65,10 +67,22 @@ This behavior can be disabled by setting
 --------------------------------------------------------------------------------
 COMMANDS                                                *nvim-image-extmarks-command*
 
-:[range]CreateImage {filepath}                          *CreateImage*
+:[range]CreateImage {filepath}                          *:CreateImage*
 
 Create an image extmark with the given filename at the range specified.
 This wraps |sixel_extmarks.create| below.
+
+
+:SixelRedraw                                            *:SixelRedraw*
+
+Redraw all sixel images present in the current tabpage.
+This wraps |sixel_extmarks.redraw| below.
+
+
+:SixelClear                                             *:SixelClear*
+
+Clear all sixel images from the current tabpage.
+This wraps |sixel_extmarks.clear_screen| below.
 
 
 --------------------------------------------------------------------------------
@@ -304,6 +318,16 @@ parent_tty_magic                                        *sixel_extmarks.config.p
 
         Enables fetching character sizes from terminals of parent processes.
         Defaults to 1 (true).
+
+
+tmux_detach_clears                                      *sixel_extmarks.config.tmux_detach_clears
+                                                        *g:image_extmarks_tmux_detach_clears
+
+        Whether or to detach and reattach to the tmux session to clear images.
+        If enabled, this may cause excessive "flashing" behavior due to delay
+        between detatching and reattaching to the tmux session.
+        If not inside tmux, this option does nothing.
+        Defaults to 0 (false).
 
 
 ioctl_magic                                             *sixel_extmarks.config.ioctl_magic*

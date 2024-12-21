@@ -1,4 +1,6 @@
-CreateImage	sixel_extmarks.txt	/*CreateImage*
+:CreateImage	sixel_extmarks.txt	/*:CreateImage*
+:SixelClear	sixel_extmarks.txt	/*:SixelClear*
+:SixelRedraw	sixel_extmarks.txt	/*:SixelRedraw*
 ImageExtmarks#pre_draw	sixel_extmarks.txt	/*ImageExtmarks#pre_draw*
 g:image_extmarks_TIOCGWINSZ	sixel_extmarks.txt	/*g:image_extmarks_TIOCGWINSZ*
 g:image_extmarks_buffer_ms	sixel_extmarks.txt	/*g:image_extmarks_buffer_ms*

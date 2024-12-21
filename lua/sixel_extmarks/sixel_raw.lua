@@ -245,12 +245,13 @@ end
 -- Clear the screen of all sixel characters
 -- This should also work in tmux, where sixel images can appear "sticky"
 --
-function sixel_raw.clear_screen()
+---@param force_tmux boolean If using tmux, force the tmux session to detach and reattach
+function sixel_raw.clear_screen(force_tmux)
   if sixel_raw.screen_cleared then return end
   -- clear screen with :mode
   vim.cmd("mode")
   -- clear tmux with tmux detach -E "tmux attach -t (session number)"
-  if sixel_raw.tmux_session ~= nil then
+  if sixel_raw.tmux_session ~= nil and (force_tmux or config.tmux_detach_clears) then
     sixel_raw.no_resize = true
     vim.defer_fn(function() sixel_raw.no_resize = false end, REDRAW_TIMEOUT_MS)
     vim.fn.system(("tmux detach -E 'tmux attach -t %s'"):format(sixel_raw.tmux_session))

@@ -1,6 +1,6 @@
 local default_config = {
   -- Allow virtual extmarks
-  allow_virtual = vim.fn.has("nvim-0.10"),
+  allow_virtual = vim.fn.has("nvim-0.10") == 1,
   -- Can acquire TIOCGWINSZ from Python
   ioctl_magic = true,
   -- System ioctl value for TIOCGWINSZ

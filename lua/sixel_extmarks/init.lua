@@ -270,8 +270,10 @@ end
 
 -- Clear all content drawn to the screen. Unlike :mode in vim,
 -- this has the additional guarantee of working inside a tmux session.
-function sixel_extmarks.clear_screen()
-  sixel_raw.clear_screen()
+--
+---@param force_tmux? boolean
+function sixel_extmarks.clear_screen(force_tmux)
+  sixel_raw.clear_screen(force_tmux)
 end
 
 

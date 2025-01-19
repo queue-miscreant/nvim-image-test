@@ -1,3 +1,5 @@
+---@meta
+
 ---@alias blob_path string
 ---@alias cache_id string
 ---@alias extmark_coords number[]
@@ -13,7 +15,6 @@
 
 ---@class wrapped_extmark Internal representation of an extmark,
 ---including "local" information from its position in the window.
----
 ---@field start_row integer
 ---@field height integer
 ---@field max_width integer
@@ -23,6 +24,7 @@
 ---@field details extmark_details
 ---@field path string | nil
 ---@field error string | nil
+---@field above boolean | nil
 ---@field screen_position [integer, integer]
 
 ---@class image_extmark Information about an image extmark, including its range and height
@@ -36,14 +38,12 @@
 
 ---@class callback_details Helper object for blobbing extmarks and drawing them to the
 ---right place on the screen
----
 ---@field screen_position extmark_coords
 ---@field extmark_id integer
 ---@field buffer_id integer
 ---@field retry_number? integer
 
 ---@class window_dimensions Helper object accumulating window information for drawing
----
 ---@field height integer
 ---@field width integer
 ---@field topline integer Top line of the buffer
